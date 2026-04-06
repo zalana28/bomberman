@@ -322,7 +322,7 @@
   <div class="save-box" id="save-box">
     <div class="save-box-title">💾 SAVE SCORE</div>
     <input id="score-name-input" type="text" maxlength="12" placeholder="YOUR NAME..." autocomplete="off">
-    <button id="btn-save-score" onclick="saveScore()">✔ SAVE TO LEADERBOARD</button>
+    <button id="btn-save-score" onclick="saveScore().catch(console.error)">✔ SAVE TO LEADERBOARD</button>
     <div class="save-msg" id="save-msg">✓ SCORE SAVED!</div>
   </div>
 
@@ -377,6 +377,57 @@ function lbBack() {
 
 // ═══════════════════════════════════════════════════════
 //  WALLET CONNECT (Base Network)
+// ═══════════════════════════════════════════════════════
+//  BASE BUILDER CODE — ERC-8021 Attribution
+// ═══════════════════════════════════════════════════════
+const BUILDER_CODE = 'bc_j6dd4psb';
+
+/**
+ * Encodes builder code into ERC-8021 dataSuffix format.
+ * Format: 0x + "8021" marker (2 bytes) + length (2 bytes) + encoded code (hex)
+ * This suffix is appended to the `data` field of every transaction
+ * so Base can attribute onchain activity to this app.
+ */
+function buildDataSuffix(code) {
+  const encoded = new TextEncoder().encode(code);
+  const hex = Array.from(encoded).map(b => b.toString(16).padStart(2, '0')).join('');
+  const len = encoded.length.toString(16).padStart(4, '0');
+  return '0x8021' + len + hex;
+}
+
+const DATA_SUFFIX = buildDataSuffix(BUILDER_CODE);
+
+/**
+ * Sends a transaction with the Builder Code dataSuffix attached.
+ * Use this for ANY eth_sendTransaction call in the app.
+ * @param {object} txParams - standard transaction params (to, value, data, etc.)
+ * @returns {string} transaction hash
+ */
+async function sendWithAttribution(txParams) {
+  if (!walletAddress || !window.ethereum) throw new Error('Wallet not connected');
+
+  // Merge existing data with dataSuffix
+  // If tx already has data, append suffix to it; otherwise use suffix alone
+  const existingData = txParams.data || '0x';
+  const existing = existingData.startsWith('0x') ? existingData.slice(2) : existingData;
+  const suffix    = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
+  const mergedData = '0x' + existing + suffix;
+
+  const params = {
+    from: walletAddress,
+    ...txParams,
+    data: mergedData,
+  };
+
+  const txHash = await window.ethereum.request({
+    method: 'eth_sendTransaction',
+    params: [params],
+  });
+
+  console.log(`[Builder Code] tx sent with attribution ${BUILDER_CODE}:`, txHash);
+  return txHash;
+}
+
 // ═══════════════════════════════════════════════════════
 let walletAddress = null;
 
@@ -487,9 +538,13 @@ function getLeaderboard() {
   catch { return []; }
 }
 
-function saveScore() {
-  const nameEl = document.getElementById('score-name-input');
+async function saveScore() {
+  const nameEl  = document.getElementById('score-name-input');
+  const saveBtn = document.getElementById('btn-save-score');
+  const saveMsg = document.getElementById('save-msg');
   const name = (nameEl.value.trim().toUpperCase() || 'ANON').slice(0, 12);
+
+  // Always save to localStorage first (works with or without wallet)
   const lb = getLeaderboard();
   lb.push({
     name,
@@ -502,9 +557,44 @@ function saveScore() {
   lb.sort((a, b) => b.score - a.score);
   lb.splice(10);
   localStorage.setItem(LB_KEY, JSON.stringify(lb));
-  document.getElementById('save-msg').style.display = 'block';
-  document.getElementById('btn-save-score').disabled = true;
-  document.getElementById('btn-save-score').style.opacity = '0.4';
+
+  saveBtn.disabled = true;
+  saveBtn.style.opacity = '0.4';
+
+  // If wallet is connected → send onchain attribution tx
+  if (walletAddress && window.ethereum) {
+    saveBtn.textContent = '⏳ SENDING ONCHAIN...';
+    saveMsg.style.display = 'none';
+
+    try {
+      // Encode score data as hex for the transaction data field
+      // Format: score save marker + score value + level
+      const scoreHex  = score.toString(16).padStart(8, '0');
+      const levelHex  = level.toString(16).padStart(4, '0');
+      const scoreData = '0xBASE' + scoreHex + levelHex; // readable marker
+
+      // Send a 0-value self-transaction with Builder Code attribution
+      // This is the minimal onchain signal tracked by base.dev
+      await sendWithAttribution({
+        to:    walletAddress,  // self-send (0 ETH cost beyond gas)
+        value: '0x0',
+        data:  '0x' + scoreHex + levelHex, // score payload
+      });
+
+      saveMsg.textContent = '✓ SCORE SAVED ONCHAIN!';
+      saveMsg.style.color = '#4fc3f7';
+    } catch (err) {
+      console.warn('[Builder Code] onchain save failed, score kept locally:', err);
+      saveMsg.textContent = '✓ SAVED LOCALLY (tx skipped)';
+      saveMsg.style.color = '#888';
+    }
+  } else {
+    saveMsg.textContent = '✓ SCORE SAVED!';
+    saveMsg.style.color = '#4caf50';
+  }
+
+  saveMsg.style.display = 'block';
+  saveBtn.textContent   = '✔ SAVE TO LEADERBOARD';
 }
 
 function renderLeaderboard() {
