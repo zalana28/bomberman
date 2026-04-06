@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="base:app_id" content="69d3f28a0e11f62f2693be6d" />
+<title>💣 BOMBERMAN — Base</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  :root {
+    --red:#e63946; --red-dark:#7b0000; --red-mid:#c1121f;
+    --gold:#f4d03f; --blue:#4fc3f7; --blue-dark:#01579b;
+    --bg:#0a0a0f; --panel:#111; --border:#2a2a3a;
+    --base-blue:#0052ff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body {
+    width:100%; height:100%;
+    background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Press Start 2P',monospace;
+    overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px);
+    pointer-events:none; z-index:200;
+  }
+
+  /* ══════════════ SCREEN VISIBILITY ══════════════ */
+  .screen { display:none; }
+  .screen.active { display:flex; }
+
+  /* ══════════════ TITLE SCREEN ══════════════ */
+  #title-screen {
+    flex-direction:column; align-items:center; gap:14px; padding:20px 16px;
+    max-width:340px; width:100%;
+  }
+  .bomb-emoji { font-size:48px; animation:bounce .8s ease-in-out infinite alternate; filter:drop-shadow(0 0 18px #e6394688); }
+  @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+  .title-logo {
+    font-size:clamp(16px,5.5vw,30px); color:#fff;
+    text-shadow:3px 3px 0 var(--red),6px 6px 0 var(--red-dark),0 0 40px #e63946aa;
+    letter-spacing:2px; animation:pulse 1.5s ease-in-out infinite;
+    text-align:center;
+  }
+  .title-sub { font-size:clamp(5px,1.8vw,8px); color:var(--base-blue); letter-spacing:1px; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }
+
+  /* WALLET SECTION */
+  .wallet-box {
+    width:100%; background:#0d0d18; border:1px solid var(--border);
+    padding:10px 14px; display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  #wallet-status { font-size:6px; color:#555; }
+  #wallet-status.connected { color:#4caf50; }
+  #wallet-status.connected::before { content:'● '; }
+  #wallet-addr { font-size:6px; color:var(--blue); display:none; word-break:break-all; text-align:center; }
+  #btn-connect {
+    background:var(--base-blue); color:#fff; border:none;
+    font-family:'Press Start 2P',monospace; font-size:7px; padding:10px 18px;
+    cursor:pointer; box-shadow:3px 3px 0 #001a66; white-space:nowrap;
+    transition:transform .08s,box-shadow .08s;
+  }
+  #btn-connect:active { transform:translate(3px,3px); box-shadow:none; }
+  #btn-connect.connected { background:#1a3a1a; border:1px solid #4caf50; box-shadow:3px 3px 0 #0a1a0a; font-size:6px; }
+
+  .press-start { color:var(--gold); font-size:clamp(6px,2vw,9px); animation:blink 1s step-end infinite; text-shadow:0 0 10px #f4d03f88; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  /* controls-info removed */
+
+  .title-btns { display:flex; gap:10px; width:100%; }
+  .start-btn {
+    flex:2; background:var(--red); color:#fff; border:none;
+    font-family:'Press Start 2P',monospace; font-size:clamp(7px,2.3vw,11px);
+    padding:13px 10px; cursor:pointer; box-shadow:4px 4px 0 var(--red-dark);
+    transition:transform .08s,box-shadow .08s;
+  }
+  .start-btn:active { transform:translate(4px,4px); box-shadow:none; }
+  .lb-btn {
+    flex:1; background:#1a1a2e; color:var(--gold); border:1px solid var(--gold);
+    font-family:'Press Start 2P',monospace; font-size:clamp(5px,1.8vw,8px);
+    padding:13px 6px; cursor:pointer;
+    transition:transform .08s,background .1s;
+  }
+  .lb-btn:active { transform:translate(2px,2px); }
+
+  /* ══════════════ GAME WRAP ══════════════ */
+  #game-wrap { flex-direction:column; align-items:center; width:100%; height:100%; }
+
+  /* HUD */
+  #hud {
+    display:flex; gap:clamp(4px,2vw,16px); padding:5px 8px;
+    background:var(--panel); border:2px solid var(--border); border-bottom:none;
+    width:100%; justify-content:space-between; align-items:center; flex-shrink:0;
+  }
+  .hud-item { font-size:clamp(4px,1.5vw,7px); color:#888; white-space:nowrap; }
+  .hud-item span { color:var(--gold); margin-left:3px; }
+  .hud-lives { color:var(--red); font-size:clamp(8px,2.5vw,12px); }
+  .hud-wallet { font-size:clamp(4px,1.3vw,6px); color:var(--base-blue); cursor:pointer; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
+
+  /* CANVAS */
+  #gameCanvas {
+    border:2px solid var(--border); border-top:none; display:block;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+    background:#1a1a2e; touch-action:none;
+  }
+
+  /* ══════════════ MOBILE CONTROLS ══════════════ */
+  #mobile-controls {
+    display:none; width:100%; padding:8px 16px 12px;
+    background:#0a0a14; border:2px solid var(--border); border-top:none;
+    justify-content:space-between; align-items:center; flex-shrink:0; gap:0;
+  }
+
+  /* JOYSTICK D-PAD */
+  #dpad-zone {
+    position:relative; width:170px; height:170px; flex-shrink:0;
+    touch-action:none;
+  }
+  /* Visual cross */
+  .dpad-h, .dpad-v {
+    position:absolute; background:#161626; border:1px solid #2a2a44;
+    border-radius:6px;
+  }
+  .dpad-h { left:0; top:50%; transform:translateY(-50%); width:100%; height:56px; }
+  .dpad-v { top:0; left:50%; transform:translateX(-50%); width:56px; height:100%; }
+  .dpad-center {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:44px; height:44px; background:#0d0d1e; border-radius:50%;
+    border:1px solid #1e1e30; z-index:2;
+  }
+
+  /* Arrow labels */
+  .dpad-arrow {
+    position:absolute; z-index:3; display:flex; align-items:center; justify-content:center;
+    width:56px; height:56px; font-size:18px; color:#333; pointer-events:none;
+    transition:color .08s;
+  }
+  #da-up    { top:0;   left:50%; transform:translateX(-50%); }
+  #da-down  { bottom:0;left:50%; transform:translateX(-50%); }
+  #da-left  { left:0;  top:50%;  transform:translateY(-50%); }
+  #da-right { right:0; top:50%;  transform:translateY(-50%); }
+  .dpad-arrow.active { color:var(--blue); text-shadow:0 0 8px var(--blue); }
+
+  /* Press indicator dot */
+  #dpad-indicator {
+    position:absolute; z-index:4; width:28px; height:28px;
+    background:rgba(79,195,247,0.2); border:2px solid var(--blue);
+    border-radius:50%; pointer-events:none; display:none;
+    transform:translate(-50%,-50%);
+  }
+
+  /* BOMB BUTTON — right side */
+  .bomb-side {
+    display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0;
+  }
+  #btn-bomb {
+    width:110px; height:110px;
+    background:radial-gradient(circle at 35% 35%, #e63946, #7b0000);
+    border:3px solid #e63946; border-radius:50%;
+    font-size:38px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 0 #4a0000, 0 0 24px #e6394644;
+    transition:transform .08s, box-shadow .08s;
+    touch-action:none;
+  }
+  #btn-bomb.pressed { transform:translateY(5px); box-shadow:0 1px 0 #4a0000; }
+  #btn-bomb:active  { transform:translateY(5px); box-shadow:0 1px 0 #4a0000; }
+  .bomb-lbl { font-size:6px; color:#555; letter-spacing:1px; }
+
+  /* ══════════════ GAME OVER ══════════════ */
+  #gameover-screen {
+    flex-direction:column; align-items:center; gap:16px; padding:24px 20px;
+    max-width:340px; width:100%;
+  }
+  .go-title { font-size:clamp(14px,5vw,24px); color:var(--red); text-shadow:3px 3px 0 var(--red-dark); }
+  .win-title { font-size:clamp(12px,4.5vw,20px); color:var(--blue); text-shadow:3px 3px 0 var(--blue-dark); }
+  .go-score { font-size:clamp(7px,2.5vw,11px); color:var(--gold); }
+  .go-score span { color:#fff; margin-left:6px; }
+
+  /* Score save form */
+  .save-box {
+    width:100%; background:#0d0d18; border:1px solid var(--border);
+    padding:10px 14px; display:flex; flex-direction:column; gap:8px;
+  }
+  .save-box-title { font-size:7px; color:var(--gold); }
+  #score-name-input {
+    background:#1a1a2e; border:1px solid var(--border); color:#fff;
+    font-family:'Press Start 2P',monospace; font-size:7px; padding:8px 10px;
+    outline:none; width:100%;
+  }
+  #score-name-input::placeholder { color:#333; }
+  #btn-save-score {
+    background:#1a3a1a; color:#4caf50; border:1px solid #4caf50;
+    font-family:'Press Start 2P',monospace; font-size:7px; padding:9px;
+    cursor:pointer;
+  }
+  #btn-save-score:active { opacity:.7; }
+  .save-msg { font-size:6px; color:#4caf50; display:none; text-align:center; }
+
+  .go-btns { display:flex; gap:10px; width:100%; }
+  .go-btn {
+    flex:1; background:var(--red); color:#fff; border:none;
+    font-family:'Press Start 2P',monospace; font-size:clamp(7px,2.2vw,10px);
+    padding:13px 8px; cursor:pointer; box-shadow:4px 4px 0 var(--red-dark);
+  }
+  .go-btn:active { transform:translate(4px,4px); box-shadow:none; }
+  .go-btn-outline {
+    flex:1; background:transparent; color:var(--gold); border:1px solid var(--gold);
+    font-family:'Press Start 2P',monospace; font-size:clamp(6px,1.8vw,8px);
+    padding:13px 8px; cursor:pointer;
+  }
+  .go-btn-outline:active { opacity:.7; }
+
+  /* ══════════════ LEADERBOARD SCREEN ══════════════ */
+  #lb-screen {
+    flex-direction:column; align-items:center; gap:14px; padding:20px 16px;
+    max-width:360px; width:100%; max-height:100vh; overflow-y:auto;
+  }
+  .lb-header { font-size:clamp(10px,3.5vw,16px); color:var(--gold); text-shadow:2px 2px 0 #7a6000; text-align:center; }
+  .lb-sub { font-size:6px; color:#444; }
+  .lb-table { width:100%; border-collapse:collapse; }
+  .lb-table th {
+    font-size:6px; color:#555; padding:8px 6px; text-align:left;
+    border-bottom:1px solid #1e1e30;
+  }
+  .lb-table td {
+    font-size:6px; color:#888; padding:7px 6px;
+    border-bottom:1px solid #111;
+  }
+  .lb-table tr:nth-child(1) td { color:var(--gold); }
+  .lb-table tr:nth-child(2) td { color:#c0c0c0; }
+  .lb-table tr:nth-child(3) td { color:#cd7f32; }
+  .lb-rank { color:#333 !important; font-size:7px !important; }
+  .lb-score-val { color:#fff !important; }
+  .lb-addr { font-size:5px !important; color:var(--blue) !important; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-empty { font-size:7px; color:#333; text-align:center; padding:20px; }
+  .lb-back-btn {
+    background:var(--red); color:#fff; border:none;
+    font-family:'Press Start 2P',monospace; font-size:8px;
+    padding:12px 24px; cursor:pointer; box-shadow:4px 4px 0 var(--red-dark);
+    width:100%;
+  }
+  .lb-back-btn:active { transform:translate(4px,4px); box-shadow:none; }
+  .lb-clear-btn {
+    background:transparent; color:#333; border:1px solid #222;
+    font-family:'Press Start 2P',monospace; font-size:6px;
+    padding:8px 16px; cursor:pointer; width:100%;
+  }
+</style>
+</head>
+<body>
+
+<!-- ██████████ TITLE SCREEN ██████████ -->
+<div id="title-screen" class="screen active">
+  <span class="bomb-emoji">💣</span>
+  <div class="title-logo">BOMBERMAN</div>
+  <div class="title-sub">ON BASE NETWORK</div>
+
+  <!-- Wallet Connect -->
+  <div class="wallet-box">
+    <div id="wallet-status">WALLET NOT CONNECTED</div>
+    <div id="wallet-addr"></div>
+    <button id="btn-connect" onclick="connectWallet()">🔗 CONNECT WALLET</button>
+  </div>
+
+  <div class="press-start">— TAP TO START —</div>
+
+  <div class="title-btns">
+    <button class="start-btn" id="startBtn">▶ PLAY</button>
+    <button class="lb-btn" onclick="showScreen('lb-screen')">🏆 SCORES</button>
+  </div>
+</div>
+
+<!-- ██████████ GAME SCREEN ██████████ -->
+<div id="game-wrap" class="screen">
+  <div id="hud">
+    <div class="hud-item">SCORE<span id="scoreDisplay">0</span></div>
+    <div class="hud-item">LIVES <span class="hud-lives" id="livesDisplay">♥♥♥</span></div>
+    <div class="hud-item">LVL<span id="levelDisplay">1</span></div>
+    <div class="hud-item">👾<span id="enemyDisplay">3</span></div>
+    <div class="hud-wallet" id="hudWallet" title=""></div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- MOBILE CONTROLS -->
+  <div id="mobile-controls">
+    <!-- Left: Joystick D-Pad -->
+    <div id="dpad-zone">
+      <div class="dpad-h"></div>
+      <div class="dpad-v"></div>
+      <div class="dpad-center"></div>
+      <div class="dpad-arrow" id="da-up">▲</div>
+      <div class="dpad-arrow" id="da-down">▼</div>
+      <div class="dpad-arrow" id="da-left">◀</div>
+      <div class="dpad-arrow" id="da-right">▶</div>
+      <div id="dpad-indicator"></div>
+    </div>
+
+    <div style="text-align:center;color:#252535;font-size:5px;line-height:2.4;flex:1;">
+      DESTROY<br>ENEMIES<br>🌀PORTAL<br>NEXT LVL
+    </div>
+
+    <!-- Right: Bomb -->
+    <div class="bomb-side">
+      <div id="btn-bomb">💣</div>
+      <div class="bomb-lbl">PLACE BOMB</div>
+    </div>
+  </div>
+</div>
+
+<!-- ██████████ GAME OVER SCREEN ██████████ -->
+<div id="gameover-screen" class="screen">
+  <div class="go-title" id="endTitle">GAME OVER</div>
+  <div class="go-score">FINAL SCORE: <span id="finalScore">0</span></div>
+  <div class="go-score" id="finalLevel" style="font-size:7px;color:#888;">LEVEL: <span id="finalLevelVal">1</span></div>
+
+  <!-- Save score -->
+  <div class="save-box" id="save-box">
+    <div class="save-box-title">💾 SAVE SCORE</div>
+    <input id="score-name-input" type="text" maxlength="12" placeholder="YOUR NAME..." autocomplete="off">
+    <button id="btn-save-score" onclick="saveScore()">✔ SAVE TO LEADERBOARD</button>
+    <div class="save-msg" id="save-msg">✓ SCORE SAVED!</div>
+  </div>
+
+  <div class="go-btns">
+    <button class="go-btn" onclick="restartGame()">▶ PLAY AGAIN</button>
+    <button class="go-btn-outline" onclick="showScreen('lb-screen')">🏆 LEADERBOARD</button>
+  </div>
+  <button class="go-btn-outline" style="width:100%;font-size:6px;padding:10px;" onclick="showScreen('title-screen')">⬅ TITLE</button>
+</div>
+
+<!-- ██████████ LEADERBOARD SCREEN ██████████ -->
+<div id="lb-screen" class="screen">
+  <div class="lb-header">🏆 LEADERBOARD</div>
+  <div class="lb-sub">TOP 10 HIGH SCORES</div>
+
+  <table class="lb-table" id="lb-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>NAME</th>
+        <th>SCORE</th>
+        <th>LVL</th>
+        <th>WALLET</th>
+      </tr>
+    </thead>
+    <tbody id="lb-tbody">
+      <tr><td colspan="5" class="lb-empty">NO SCORES YET</td></tr>
+    </tbody>
+  </table>
+
+  <button class="lb-back-btn" onclick="lbBack()">⬅ BACK</button>
+  <button class="lb-clear-btn" onclick="clearLeaderboard()">🗑 CLEAR ALL SCORES</button>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN MANAGER
+// ═══════════════════════════════════════════════════════
+let prevScreen = 'title-screen';
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'lb-screen') renderLeaderboard();
+}
+
+function lbBack() {
+  showScreen(prevScreen === 'gameover-screen' ? 'gameover-screen' : 'title-screen');
+}
+
+// ═══════════════════════════════════════════════════════
+//  WALLET CONNECT (Base Network)
+// ═══════════════════════════════════════════════════════
+let walletAddress = null;
+
+const BASE_CHAIN_ID = '0x2105'; // 8453 decimal
+const BASE_CHAIN_PARAMS = {
+  chainId: BASE_CHAIN_ID,
+  chainName: 'Base',
+  rpcUrls: ['https://mainnet.base.org'],
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  blockExplorerUrls: ['https://basescan.org']
+};
+
+async function connectWallet() {
+  const btn = document.getElementById('btn-connect');
+
+  // Already connected — disconnect
+  if (walletAddress) {
+    walletAddress = null;
+    updateWalletUI();
+    return;
+  }
+
+  if (!window.ethereum) {
+    alert('⚠️ Install MetaMask / Coinbase Wallet\nor open in a Web3 browser!');
+    return;
+  }
+
+  try {
+    btn.textContent = '⏳ CONNECTING...';
+
+    // Request accounts
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    walletAddress = accounts[0];
+
+    // Switch / add Base network
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BASE_CHAIN_ID }]
+      });
+    } catch (switchErr) {
+      if (switchErr.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [BASE_CHAIN_PARAMS]
+        });
+      }
+    }
+
+    updateWalletUI();
+
+    // Listen for account change
+    window.ethereum.on('accountsChanged', accs => {
+      walletAddress = accs[0] || null;
+      updateWalletUI();
+    });
+
+  } catch (e) {
+    btn.textContent = '🔗 HUBUNGKAN WALLET';
+    console.error('Wallet error:', e);
+  }
+}
+
+function shortAddr(addr) {
+  if (!addr) return '';
+  return addr.slice(0,6) + '...' + addr.slice(-4);
+}
+
+function updateWalletUI() {
+  const st  = document.getElementById('wallet-status');
+  const addr = document.getElementById('wallet-addr');
+  const btn  = document.getElementById('btn-connect');
+  const hud  = document.getElementById('hudWallet');
+
+  if (walletAddress) {
+    st.textContent = 'CONNECTED — BASE NETWORK';
+    st.className = 'connected';
+    addr.textContent = shortAddr(walletAddress);
+    addr.style.display = 'block';
+    btn.textContent = '✕ DISCONNECT';
+    btn.className = 'connected';
+    if (hud) { hud.textContent = shortAddr(walletAddress); hud.title = walletAddress; }
+  } else {
+    st.textContent = 'WALLET NOT CONNECTED';
+    st.className = '';
+    addr.style.display = 'none';
+    btn.textContent = '🔗 CONNECT WALLET';
+    btn.className = '';
+    if (hud) hud.textContent = '';
+  }
+}
+
+// Pre-fill name from wallet on game over
+function prefillNameFromWallet() {
+  const inp = document.getElementById('score-name-input');
+  if (walletAddress && !inp.value) {
+    inp.value = shortAddr(walletAddress);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  LEADERBOARD (localStorage)
+// ═══════════════════════════════════════════════════════
+const LB_KEY = 'bomberman_base_lb';
+
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveScore() {
+  const nameEl = document.getElementById('score-name-input');
+  const name = (nameEl.value.trim().toUpperCase() || 'ANON').slice(0, 12);
+  const lb = getLeaderboard();
+  lb.push({
+    name,
+    score,
+    level,
+    wallet: walletAddress ? shortAddr(walletAddress) : '—',
+    walletFull: walletAddress || '',
+    date: new Date().toLocaleDateString('id-ID')
+  });
+  lb.sort((a, b) => b.score - a.score);
+  lb.splice(10);
+  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+  document.getElementById('save-msg').style.display = 'block';
+  document.getElementById('btn-save-score').disabled = true;
+  document.getElementById('btn-save-score').style.opacity = '0.4';
+}
+
+function renderLeaderboard() {
+  const lb = getLeaderboard();
+  const tbody = document.getElementById('lb-tbody');
+  if (!lb.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">NO SCORES YET</td></tr>';
+    return;
+  }
+  tbody.innerHTML = lb.map((e, i) => `
+    <tr>
+      <td class="lb-rank">${['🥇','🥈','🥉'][i] || (i+1)}</td>
+      <td>${e.name}</td>
+      <td class="lb-score-val">${e.score}</td>
+      <td>${e.level}</td>
+      <td class="lb-addr" title="${e.walletFull}">${e.wallet}</td>
+    </tr>
+  `).join('');
+}
+
+function clearLeaderboard() {
+  if (confirm('Clear all leaderboard scores?')) {
+    localStorage.removeItem(LB_KEY);
+    renderLeaderboard();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME CONSTANTS
+// ═══════════════════════════════════════════════════════
+const COLS = 13, ROWS = 13;
+let TILE = 38;
+const EMPTY = 0, WALL = 1, BLOCK = 2;
+const PC = {
+  wall:'#2d1b69', wallEdge:'#4a2f96', wallTop:'#5c3aaa',
+  floor:'#1a1a2e', floorAlt:'#16213e',
+  block:'#8b4513', blockEdge:'#a0522d', blockTop:'#cd853f',
+  playerH:'#4fc3f7',
+  fire:'#e63946', fire2:'#f4d03f',
+  portal:'#00f5ff', portalGlow:'#00f5ff33',
+};
+const ECOLORS = ['#e63946', '#f4a261', '#9b5de5'];
+const EDARK   = ['#7b0000', '#c1440e', '#5a189a'];
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let canvas, ctx, gameState = 'title';
+let gmap, bombs, fires, enemies, portals;
+let player, score, lives, level, frameCount, invincible, lastMove;
+const keys = {};
+const mob  = { up:false, down:false, left:false, right:false };
+
+// ═══════════════════════════════════════════════════════
+//  RESPONSIVE CANVAS
+// ═══════════════════════════════════════════════════════
+const isMobile = () => window.innerWidth <= 680 || ('ontouchstart' in window);
+
+function resizeCanvas() {
+  if (!canvas) return;
+  const useMob = isMobile();
+  const mctrl = document.getElementById('mobile-controls');
+  mctrl.style.display = useMob ? 'flex' : 'none';
+
+  const hudH   = document.getElementById('hud').offsetHeight || 28;
+  const ctrlH  = useMob ? (mctrl.offsetHeight || 190) : 0;
+  const vpad   = useMob ? 6 : 16;
+  const avW    = Math.min(window.innerWidth, 560);
+  const avH    = window.innerHeight - hudH - ctrlH - vpad;
+  TILE = Math.floor(Math.min(avW / COLS, avH / ROWS));
+
+  const cw = TILE * COLS, ch = TILE * ROWS;
+  canvas.width  = cw; canvas.height = ch;
+  canvas.style.width  = cw + 'px';
+  canvas.style.height = ch + 'px';
+  document.getElementById('hud').style.width           = cw + 'px';
+  document.getElementById('mobile-controls').style.width = cw + 'px';
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+// ═══════════════════════════════════════════════════════
+//  INPUT — KEYBOARD
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (gameState === 'title') { startGame(); return; }
+  if (gameState === 'playing' && e.code === 'Space') placeBomb();
+  if ((gameState === 'gameover' || gameState === 'win') && (e.code === 'Space' || e.code === 'Enter')) restartGame();
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ═══════════════════════════════════════════════════════
+//  INPUT — JOYSTICK D-PAD (touch anywhere in zone)
+// ═══════════════════════════════════════════════════════
+function bindMobileControls() {
+  const zone = document.getElementById('dpad-zone');
+  const indicator = document.getElementById('dpad-indicator');
+
+  function applyDir(touch) {
+    const rect = zone.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    const dx = touch.clientX - cx;
+    const dy = touch.clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Move indicator
+    indicator.style.display = 'block';
+    const ix = Math.min(Math.max(touch.clientX - rect.left, 14), rect.width  - 14);
+    const iy = Math.min(Math.max(touch.clientY - rect.top,  14), rect.height - 14);
+    indicator.style.left = ix + 'px';
+    indicator.style.top  = iy + 'px';
+
+    const deadzone = 22;
+    mob.up = mob.down = mob.left = mob.right = false;
+
+    if (dist >= deadzone) {
+      const angle = Math.atan2(dy, dx); // -π to π
+      if (angle > -Math.PI * 3/4 && angle <= -Math.PI * 1/4) mob.up    = true;
+      else if (angle >  Math.PI * 1/4 && angle <=  Math.PI * 3/4) mob.down  = true;
+      else if (angle > -Math.PI * 1/4 && angle <=  Math.PI * 1/4) mob.right = true;
+      else                                                           mob.left  = true;
+    }
+    updateDpadVisuals();
+  }
+
+  function releaseDir() {
+    mob.up = mob.down = mob.left = mob.right = false;
+    updateDpadVisuals();
+    indicator.style.display = 'none';
+  }
+
+  zone.addEventListener('touchstart',  e => { e.preventDefault(); applyDir(e.touches[0]); }, { passive:false });
+  zone.addEventListener('touchmove',   e => { e.preventDefault(); applyDir(e.touches[0]); }, { passive:false });
+  zone.addEventListener('touchend',    e => { e.preventDefault(); releaseDir(); },            { passive:false });
+  zone.addEventListener('touchcancel', e => { e.preventDefault(); releaseDir(); },            { passive:false });
+
+  // Mouse fallback
+  let mouseDown = false;
+  zone.addEventListener('mousedown',  e => { mouseDown=true;  applyDir(e); });
+  zone.addEventListener('mousemove',  e => { if (mouseDown) applyDir(e); });
+  zone.addEventListener('mouseup',    () => { mouseDown=false; releaseDir(); });
+  zone.addEventListener('mouseleave', () => { if (mouseDown) { mouseDown=false; releaseDir(); } });
+
+  // Bomb button
+  const bb = document.getElementById('btn-bomb');
+  bb.addEventListener('touchstart',  e => { e.preventDefault(); placeBomb(); bb.classList.add('pressed'); },    { passive:false });
+  bb.addEventListener('touchend',    e => { e.preventDefault(); bb.classList.remove('pressed'); },              { passive:false });
+  bb.addEventListener('touchcancel', e => { e.preventDefault(); bb.classList.remove('pressed'); },              { passive:false });
+  bb.addEventListener('mousedown',   () => { placeBomb(); bb.classList.add('pressed'); });
+  bb.addEventListener('mouseup',     () => bb.classList.remove('pressed'));
+  bb.addEventListener('mouseleave',  () => bb.classList.remove('pressed'));
+}
+
+function updateDpadVisuals() {
+  const map = { up:'da-up', down:'da-down', left:'da-left', right:'da-right' };
+  for (const [d, id] of Object.entries(map)) {
+    document.getElementById(id).classList.toggle('active', mob[d]);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAP GENERATION
+// ═══════════════════════════════════════════════════════
+function genMap(lvl) {
+  const m = [];
+  for (let r = 0; r < ROWS; r++) {
+    m[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1) { m[r][c] = WALL; }
+      else if (r % 2 === 0 && c % 2 === 0) { m[r][c] = WALL; }
+      else if ((r <= 2 && c <= 2) || (r <= 2 && c >= COLS-3)) { m[r][c] = EMPTY; }
+      else { m[r][c] = Math.random() < (0.52 + lvl * 0.02) ? BLOCK : EMPTY; }
+    }
+  }
+  return m;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT LEVEL
+// ═══════════════════════════════════════════════════════
+function initLevel() {
+  gmap = genMap(level); bombs = []; fires = []; portals = []; invincible = 0; lastMove = 0;
+  player = {
+    col:1, row:1,
+    maxBombs: 1 + Math.floor(level/2),
+    bombRange: 2 + level,
+    activeBombs: 0, moving: false, frame: 0, dir: 'down', dead: false
+  };
+  const n = 2 + level;
+  const corners = [[COLS-2,1],[1,ROWS-2],[COLS-2,ROWS-2]];
+  enemies = [];
+  for (let i = 0; i < n; i++) {
+    let col, row;
+    if (i < corners.length) {
+      [col, row] = corners[i]; gmap[row][col] = EMPTY;
+      if (gmap[row][col-1] !== WALL) gmap[row][col-1] = EMPTY;
+      if (gmap[row-1] && gmap[row-1][col] !== WALL) gmap[row-1][col] = EMPTY;
+    } else {
+      do {
+        col = 1 + Math.floor(Math.random() * (COLS-2));
+        row = 1 + Math.floor(Math.random() * (ROWS-2));
+      } while (gmap[row][col] !== EMPTY || (Math.abs(col-1) < 3 && Math.abs(row-1) < 3));
+    }
+    enemies.push({
+      col, row, type: i % 3,
+      dir: ['up','down','left','right'][~~(Math.random()*4)],
+      moveTimer: 0,
+      moveDelay: Math.max(8, 28 - level*2 + i*4),
+      frame: 0, dead: false, deathFrame: 0
+    });
+  }
+  // Portal hidden under a block
+  let pc, pr;
+  do {
+    pc = 1 + ~~(Math.random() * (COLS-2));
+    pr = 1 + ~~(Math.random() * (ROWS-2));
+  } while (gmap[pr][pc] !== BLOCK || (Math.abs(pc-1) < 3 && Math.abs(pr-1) < 3));
+  portals.push({ col:pc, row:pr, visible:false, frame:0 });
+
+  document.getElementById('enemyDisplay').textContent  = n;
+  document.getElementById('levelDisplay').textContent  = level;
+  updateHUD();
+}
+
+function updateHUD() {
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('livesDisplay').textContent = '♥'.repeat(Math.max(0, lives));
+}
+
+// ═══════════════════════════════════════════════════════
+//  PLAYER
+// ═══════════════════════════════════════════════════════
+function movePlayer() {
+  if (player.dead) return;
+  if (frameCount - lastMove < 5) return;
+  let dc = 0, dr = 0;
+  if (keys['ArrowLeft']  || keys['KeyA'] || mob.left)  { dc = -1; player.dir = 'left';  }
+  if (keys['ArrowRight'] || keys['KeyD'] || mob.right) { dc =  1; player.dir = 'right'; }
+  if (keys['ArrowUp']    || keys['KeyW'] || mob.up)    { dr = -1; player.dir = 'up';    }
+  if (keys['ArrowDown']  || keys['KeyS'] || mob.down)  { dr =  1; player.dir = 'down';  }
+  if (!dc && !dr) { player.moving = false; return; }
+  const nc = player.col + dc, nr = player.row + dr;
+  if (canWalk(nr, nc)) {
+    player.col = nc; player.row = nr; player.moving = true;
+    player.frame = (player.frame + 1) % 4; lastMove = frameCount;
+  } else player.moving = false;
+}
+
+function canWalk(r, c) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+  if (gmap[r][c] === WALL || gmap[r][c] === BLOCK) return false;
+  if (bombs.find(b => b.col === c && b.row === r)) return false;
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════
+//  BOMBS
+// ═══════════════════════════════════════════════════════
+function placeBomb() {
+  if (gameState !== 'playing' || player.dead) return;
+  if (player.activeBombs >= player.maxBombs) return;
+  const c = player.col, r = player.row;
+  if (bombs.find(b => b.col === c && b.row === r)) return;
+  bombs.push({ col:c, row:r, timer:150, range:player.bombRange });
+  player.activeBombs++;
+}
+
+function updateBombs() {
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const b = bombs[i]; b.timer--;
+    if (b.timer <= 0) { explode(b); bombs.splice(i,1); player.activeBombs = Math.max(0, player.activeBombs-1); }
+  }
+}
+
+function explode(b) {
+  const dirs = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
+  for (const [dc,dr] of dirs) {
+    const rng = (!dc && !dr) ? 0 : b.range;
+    for (let i = 0; i <= rng; i++) {
+      const nc = b.col + dc*i, nr = b.row + dr*i;
+      if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) break;
+      if (gmap[nr][nc] === WALL) break;
+      fires.push({ col:nc, row:nr, timer:40, center:!i });
+      if (gmap[nr][nc] === BLOCK) {
+        gmap[nr][nc] = EMPTY;
+        const p = portals.find(p => p.col === nc && p.row === nr);
+        if (p) p.visible = true;
+        score += 10; updateHUD(); break;
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  FIRE
+// ═══════════════════════════════════════════════════════
+function updateFires() {
+  for (let i = fires.length-1; i >= 0; i--) { fires[i].timer--; if (fires[i].timer <= 0) fires.splice(i,1); }
+  if (invincible > 0) { invincible--; return; }
+  if (fires.find(f => f.col === player.col && f.row === player.row) && !player.dead) playerDie();
+}
+
+function playerDie() {
+  lives--; updateHUD();
+  if (lives <= 0) { setTimeout(() => endGame(false), 700); }
+  else { player.col = 1; player.row = 1; invincible = 120; }
+}
+
+// ═══════════════════════════════════════════════════════
+//  ENEMIES
+// ═══════════════════════════════════════════════════════
+function updateEnemies() {
+  let alive = 0;
+  for (const e of enemies) {
+    if (e.dead) { e.deathFrame++; continue; }
+    alive++;
+    e.moveTimer++;
+    if (e.moveTimer >= e.moveDelay) { e.moveTimer = 0; moveEnemy(e); }
+    e.frame = (e.frame + 1) % 4;
+    if (invincible === 0 && e.col === player.col && e.row === player.row) playerDie();
+    if (fires.find(f => f.col === e.col && f.row === e.row)) { e.dead = true; score += 100 + level*50; updateHUD(); }
+  }
+  document.getElementById('enemyDisplay').textContent = alive;
+  if (alive === 0) portals.forEach(p => p.visible = true);
+  for (const p of portals) {
+    if (p.visible && p.col === player.col && p.row === player.row) {
+      level++; score += 500;
+      setTimeout(() => initLevel(), 300);
+    }
+    p.frame = (p.frame + 1) % 60;
+  }
+}
+
+function moveEnemy(e) {
+  const D = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
+  const dk = Object.keys(D);
+  let td = e.dir;
+  if (Math.random() < 0.35) {
+    const dc = player.col - e.col, dr = player.row - e.row;
+    td = Math.abs(dc) > Math.abs(dr) ? (dc > 0 ? 'right' : 'left') : (dr > 0 ? 'down' : 'up');
+  }
+  const try1 = d => {
+    const [dc,dr] = D[d];
+    const nc = e.col+dc, nr = e.row+dr;
+    if (nc<0||nc>=COLS||nr<0||nr>=ROWS) return false;
+    if (gmap[nr][nc]===WALL||gmap[nr][nc]===BLOCK) return false;
+    if (bombs.find(b=>b.col===nc&&b.row===nr)) return false;
+    e.col=nc; e.row=nr; e.dir=d; return true;
+  };
+  if (!try1(td)) {
+    const sh = dk.filter(d => d !== td).sort(() => Math.random() - .5);
+    for (const d of sh) if (try1(d)) break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW FUNCTIONS
+// ═══════════════════════════════════════════════════════
+function dWall(c,r){
+  const x=c*TILE,y=r*TILE,T=TILE;
+  ctx.fillStyle=PC.wall;ctx.fillRect(x,y,T,T);
+  ctx.fillStyle=PC.wallTop;ctx.fillRect(x,y,T,Math.max(3,T/8));
+  ctx.fillStyle=PC.wallEdge;ctx.fillRect(x,y,Math.max(3,T/10),T);
+  ctx.fillStyle='#3a2480';ctx.fillRect(x+T*.12,y+T*.16,T*.76,T*.68);
+  ctx.fillStyle=PC.wallTop;
+  ctx.fillRect(x+T*.22,y+T*.3,T*.12,T*.12);
+  ctx.fillRect(x+T*.66,y+T*.58,T*.12,T*.12);
+}
+function dBlock(c,r){
+  const x=c*TILE,y=r*TILE,T=TILE;
+  ctx.fillStyle=PC.block;ctx.fillRect(x+1,y+1,T-2,T-2);
+  ctx.fillStyle=PC.blockTop;ctx.fillRect(x+1,y+1,T-2,T*.12);
+  ctx.fillStyle=PC.blockEdge;ctx.fillRect(x+1,y+1,T*.1,T-2);
+  ctx.fillStyle='rgba(0,0,0,.2)';
+  ctx.fillRect(x+T*.18,y+T*.22,T*.64,2);
+  ctx.fillRect(x+T*.18,y+T*.46,T*.64,2);
+  ctx.fillRect(x+T*.18,y+T*.7,T*.64,2);
+}
+function dPlayer(){
+  const x=player.col*TILE,y=player.row*TILE,T=TILE,t=frameCount;
+  if(invincible>0&&Math.floor(t/6)%2===0) return;
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(x+T*.12,y+T-.04*T,T*.76,T*.08);
+  ctx.fillStyle=PC.playerH;ctx.fillRect(x+T*.2,y+T*.36,T*.6,T*.52);
+  ctx.fillStyle='#ffd6a5';ctx.fillRect(x+T*.16,y+T*.08,T*.68,T*.3);
+  ctx.fillStyle='#1a1a1a';
+  const eo=player.dir==='left'?-2:player.dir==='right'?2:0;
+  ctx.fillRect(x+T*.26+eo,y+T*.16,T*.1,T*.12);
+  ctx.fillRect(x+T*.64+eo,y+T*.16,T*.1,T*.12);
+  ctx.fillStyle='#fff';
+  ctx.fillRect(x+T*.28+eo,y+T*.18,T*.05,T*.06);
+  ctx.fillRect(x+T*.66+eo,y+T*.18,T*.05,T*.06);
+  const lo=player.moving?Math.sin(t*.35)*T*.08:0;
+  ctx.fillStyle='#1a73e8';
+  ctx.fillRect(x+T*.2,y+T*.8+lo,T*.22,T*.17);
+  ctx.fillRect(x+T*.58,y+T*.8-lo,T*.22,T*.17);
+  ctx.fillStyle='#e63946';ctx.fillRect(x+T*.2,y+T*.36,T*.6,T*.07);
+}
+function dEnemy(e){
+  if(e.dead){
+    if(e.deathFrame<20){
+      ctx.globalAlpha=1-e.deathFrame/20;
+      ctx.fillStyle=ECOLORS[e.type];
+      ctx.beginPath();ctx.arc(e.col*TILE+TILE/2,e.row*TILE+TILE/2,TILE/2*(1+e.deathFrame/18),0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+    }
+    return;
+  }
+  const x=e.col*TILE,y=e.row*TILE,T=TILE;
+  const col=ECOLORS[e.type],dark=EDARK[e.type];
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(x+T*.12,y+T*.92,T*.76,T*.07);
+  ctx.fillStyle=col;ctx.fillRect(x+T*.12,y+T*.2,T*.76,T*.65);ctx.fillRect(x+T*.22,y+T*.1,T*.56,T*.8);
+  ctx.fillStyle='#fff';ctx.fillRect(x+T*.2,y+T*.26,T*.22,T*.2);ctx.fillRect(x+T*.58,y+T*.26,T*.22,T*.2);
+  ctx.fillStyle='#000';
+  const px=e.dir==='left'?-2:e.dir==='right'?2:0,py=e.dir==='up'?-2:e.dir==='down'?2:0;
+  ctx.fillRect(x+T*.26+px,y+T*.3+py,T*.1,T*.1);ctx.fillRect(x+T*.64+px,y+T*.3+py,T*.1,T*.1);
+  ctx.fillStyle=dark;ctx.fillRect(x+T*.18,y+T*.22,T*.26,T*.07);ctx.fillRect(x+T*.56,y+T*.22,T*.26,T*.07);
+  const lo2=Math.sin(frameCount*.3)*T*.06;
+  ctx.fillRect(x+T*.2,y+T*.78+lo2,T*.2,T*.18);ctx.fillRect(x+T*.6,y+T*.78-lo2,T*.2,T*.18);
+  if(e.type===0){ctx.fillStyle=dark;for(let i=0;i<4;i++)ctx.fillRect(x+T*.16+i*T*.18,y+T*.06,T*.1,T*.14);}
+}
+function dBomb(b){
+  const x=b.col*TILE,y=b.row*TILE,T=TILE;
+  const p2=Math.sin(frameCount*.25+b.timer*.2)*T*.04;
+  ctx.fillStyle='#1a1a1a';
+  ctx.beginPath();ctx.arc(x+T/2,y+T/2+p2,T/2-T*.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ffffff30';ctx.beginPath();ctx.arc(x+T*.4,y+T*.38+p2,T*.1,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#8b6914';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x+T*.52,y+T*.14+p2);ctx.quadraticCurveTo(x+T*.64,y+T*.04,x+T*.6,y-T*.04+p2);ctx.stroke();
+  if(Math.floor(frameCount/4)%2===0){ctx.fillStyle='#f4d03f';ctx.fillRect(x+T*.56,y-T*.06+p2,3,3);}
+  if(b.timer<60){ctx.strokeStyle='#e63946';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+T/2,y+T/2,T/2-2,0,Math.PI*2*(b.timer/60));ctx.stroke();}
+}
+function dFire(f){
+  const x=f.col*TILE,y=f.row*TILE,T=TILE,t=frameCount;
+  ctx.fillStyle=f.center?PC.fire2:PC.fire;ctx.fillRect(x+T*.1,y+T*.1,T*.8,T*.8);
+  ctx.fillStyle='#fff7';ctx.fillRect(x+T*.24,y+T*.24,T*.52,T*.52);
+  const fh=Math.abs(Math.sin(t*.4))*T*.2;
+  ctx.fillStyle=PC.fire2;ctx.fillRect(x+T*.4,y+T*.04,T*.2,fh+T*.12);ctx.fillRect(x+T*.04,y+T*.4,fh+T*.12,T*.2);
+  ctx.fillStyle='rgba(230,57,70,.1)';ctx.fillRect(x-2,y-2,T+4,T+4);
+}
+function dPortal(p){
+  if(!p.visible) return;
+  const x=p.col*TILE,y=p.row*TILE,T=TILE;
+  const pulse=Math.sin(p.frame/60*Math.PI*2)*3;
+  ctx.fillStyle=PC.portalGlow;ctx.fillRect(x-3+pulse,y-3+pulse,T+6-pulse*2,T+6-pulse*2);
+  for(let i=3;i>=0;i--){
+    const off=i*3+pulse;
+    ctx.strokeStyle=i%2===0?PC.portal:'#0077ff';ctx.lineWidth=2;
+    ctx.strokeRect(x+off,y+off,T-off*2,T-off*2);
+  }
+  ctx.fillStyle='#00f5ff';ctx.fillRect(x+T/2-T*.12,y+T/2-T*.12,T*.24,T*.24);
+  ctx.fillStyle='#fff';ctx.fillRect(x+T/2-T*.06,y+T/2-T*.06,T*.12,T*.12);
+  if(Math.floor(frameCount/20)%2===0){
+    ctx.fillStyle='#00f5ff';ctx.font=`${Math.max(5,Math.floor(T/8))}px 'Press Start 2P'`;
+    ctx.textAlign='center';ctx.fillText('NEXT',x+T/2,y+T-T*.06);
+  }
+}
+function draw(){
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    ctx.fillStyle=(r+c)%2===0?PC.floor:PC.floorAlt;
+    ctx.fillRect(c*TILE,r*TILE,TILE,TILE);
+  }
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    if(gmap[r][c]===WALL) dWall(c,r);
+    if(gmap[r][c]===BLOCK) dBlock(c,r);
+  }
+  portals.forEach(p=>dPortal(p));
+  fires.forEach(f=>dFire(f));
+  bombs.forEach(b=>dBomb(b));
+  [...enemies].sort((a,b)=>a.row-b.row).forEach(e=>dEnemy(e));
+  dPlayer();
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════
+function loop(){
+  if(gameState !== 'playing') return;
+  frameCount++;
+  movePlayer(); updateBombs(); updateFires(); updateEnemies();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME CONTROL
+// ═══════════════════════════════════════════════════════
+function startGame(){
+  canvas = document.getElementById('gameCanvas');
+  ctx    = canvas.getContext('2d');
+  score  = 0; lives = 3; level = 1; frameCount = 0;
+  gameState = 'playing';
+
+  showScreen('game-wrap');
+  updateWalletUI();
+  resizeCanvas();
+  bindMobileControls();
+  initLevel();
+  updateHUD();
+  loop();
+}
+
+function endGame(win){
+  gameState = win ? 'win' : 'gameover';
+  prevScreen = 'gameover-screen';
+  showScreen('gameover-screen');
+  document.getElementById('endTitle').textContent  = win ? '🎉 YOU WIN!' : '💀 GAME OVER';
+  document.getElementById('endTitle').className    = win ? 'win-title'  : 'go-title';
+  document.getElementById('finalScore').textContent     = score;
+  document.getElementById('finalLevelVal').textContent  = level;
+
+  // Reset save form
+  document.getElementById('save-msg').style.display        = 'none';
+  document.getElementById('btn-save-score').disabled       = false;
+  document.getElementById('btn-save-score').style.opacity  = '1';
+  document.getElementById('score-name-input').value        = '';
+  prefillNameFromWallet();
+}
+
+function restartGame(){
+  showScreen('game-wrap');
+  score = 0; lives = 3; level = 1; frameCount = 0;
+  gameState = 'playing';
+  resizeCanvas();
+  initLevel(); updateHUD();
+  loop();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TITLE TOUCH TO START
+// ═══════════════════════════════════════════════════════
+document.getElementById('startBtn').addEventListener('click',  startGame);
+document.getElementById('startBtn').addEventListener('touchstart', e => { e.preventDefault(); startGame(); }, { passive:false });
+</script>
+</body>
+</html>
