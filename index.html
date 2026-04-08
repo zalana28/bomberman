@@ -710,17 +710,21 @@ async function saveScore() {
   if (walletAddress && window.ethereum && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
     saveBtn.textContent = '⏳ SAVING ONCHAIN...';
     try {
+      // TX 1: submitScore ke contract (TANPA suffix — contract tidak boleh ada extra data)
       const calldata = encodeSubmitScore(name, score, level);
-      // Merge with Builder Code dataSuffix for attribution
-      const suffix   = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
-      const data     = calldata + suffix;
-
       const txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
-        params: [{ from: walletAddress, to: CONTRACT_ADDRESS, data, value: '0x0' }],
+        params: [{ from: walletAddress, to: CONTRACT_ADDRESS, data: calldata, value: '0x0' }],
       });
-
       console.log('[Leaderboard] onchain score saved:', txHash);
+
+      // TX 2: attribution self-send dengan Builder Code suffix (terpisah)
+      sendWithAttribution({
+        to:    walletAddress,
+        value: '0x0',
+        data:  '0x' + encodeUint(score).slice(56) + encodeUint(level).slice(60),
+      }).catch(e => console.warn('[Attribution] skipped:', e.message));
+
       saveMsg.textContent = '✓ SAVED ONCHAIN! 🔗';
       saveMsg.style.color = '#4fc3f7';
     } catch (err) {
