@@ -368,7 +368,7 @@ let prevScreen = 'title-screen';
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (id === 'lb-screen') renderLeaderboard();
+  if (id === 'lb-screen') renderLeaderboard().catch(console.error);
 }
 
 function lbBack() {
@@ -529,11 +529,157 @@ function prefillNameFromWallet() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  LEADERBOARD (localStorage)
+//  ONCHAIN LEADERBOARD — BombermanLeaderboard.sol
 // ═══════════════════════════════════════════════════════
+
+// ⚠️  Ganti CONTRACT_ADDRESS dengan address hasil deploy kamu
+const CONTRACT_ADDRESS = '0x53A0362A5d7654251505807954626D3C6C6e5b4B';
+
+// ABI — hanya fungsi yang dipakai di frontend
+const CONTRACT_ABI = [
+  {
+    name: 'submitScore',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'name',  type: 'string' },
+      { name: 'score', type: 'uint32' },
+      { name: 'level', type: 'uint16' },
+    ],
+    outputs: [],
+  },
+  {
+    name: 'getTopScores',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[]',
+        components: [
+          { name: 'player',    type: 'address' },
+          { name: 'name',      type: 'string'  },
+          { name: 'score',     type: 'uint32'  },
+          { name: 'level',     type: 'uint16'  },
+          { name: 'timestamp', type: 'uint40'  },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'totalEntries',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+];
+
+// ── ABI encoder helpers (vanilla JS, no ethers needed) ──
+
+function encodeUint(value, bits = 256) {
+  return BigInt(value).toString(16).padStart(64, '0');
+}
+
+function encodeString(str) {
+  const bytes  = new TextEncoder().encode(str);
+  const len    = encodeUint(bytes.length);
+  const padded = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const chunks = Math.ceil(bytes.length / 32);
+  return len + padded.padEnd(chunks * 64, '0');
+}
+
+/**
+ * Encode submitScore(string name, uint32 score, uint16 level) calldata
+ */
+function encodeSubmitScore(name, scoreVal, levelVal) {
+  // selector = keccak256("submitScore(string,uint32,uint16)") first 4 bytes
+  const selector = '0x8b73f7c3'; // precomputed
+  // ABI encode: (string, uint32, uint16)
+  // string is dynamic → offset, uint32, uint16, then string data
+  const offset    = encodeUint(96);          // offset to string data (3 * 32 bytes)
+  const scoreHex  = encodeUint(scoreVal);
+  const levelHex  = encodeUint(levelVal);
+  const strData   = encodeString(name);
+  return selector + offset + scoreHex + levelHex + strData;
+}
+
+/**
+ * Encode getTopScores() calldata
+ */
+function encodeGetTopScores() {
+  return '0x6b8f9e96'; // keccak256("getTopScores()") first 4 bytes
+}
+
+/**
+ * Call read-only function via eth_call
+ */
+async function ethCall(data) {
+  if (CONTRACT_ADDRESS === 'DEPLOY_ADDRESS_HERE') return null;
+  const result = await window.ethereum.request({
+    method: 'eth_call',
+    params: [{ to: CONTRACT_ADDRESS, data }, 'latest'],
+  });
+  return result;
+}
+
+/**
+ * Decode getTopScores() return value from hex
+ * Returns array of { player, name, score, level, timestamp }
+ */
+function decodeTopScores(hex) {
+  if (!hex || hex === '0x') return [];
+  const data = hex.startsWith('0x') ? hex.slice(2) : hex;
+
+  // Read array offset and length
+  const arrOffset = parseInt(data.slice(0, 64), 16) * 2;
+  const arrLen    = parseInt(data.slice(arrOffset, arrOffset + 64), 16);
+
+  const result = [];
+  let pos = arrOffset + 64;
+
+  // Each tuple has an offset pointer from the array data start
+  const tupleOffsets = [];
+  for (let i = 0; i < arrLen; i++) {
+    tupleOffsets.push(arrOffset + 64 + parseInt(data.slice(pos, pos + 64), 16) * 2);
+    pos += 64;
+  }
+
+  for (const tBase of tupleOffsets) {
+    let tp = tBase;
+    const playerRaw = data.slice(tp + 24, tp + 64); tp += 64;  // address (20 bytes, padded)
+    const player = '0x' + playerRaw;
+
+    const nameOffset = parseInt(data.slice(tp, tp + 64), 16) * 2; tp += 64;
+    const scoreVal   = parseInt(data.slice(tp, tp + 64), 16);      tp += 64;
+    const levelVal   = parseInt(data.slice(tp, tp + 64), 16);      tp += 64;
+    const tsVal      = parseInt(data.slice(tp, tp + 64), 16);      tp += 64;
+
+    // Decode name string from nameOffset relative to tBase
+    const strBase = tBase + nameOffset;
+    const strLen  = parseInt(data.slice(strBase, strBase + 64), 16);
+    const strHex  = data.slice(strBase + 64, strBase + 64 + strLen * 2);
+    const nameStr = new TextDecoder().decode(
+      new Uint8Array(strHex.match(/.{2}/g).map(b => parseInt(b, 16)))
+    );
+
+    result.push({
+      player,
+      name:      nameStr,
+      score:     scoreVal,
+      level:     levelVal,
+      timestamp: tsVal,
+      wallet:    player.slice(0, 6) + '...' + player.slice(-4),
+    });
+  }
+  return result;
+}
+
+// ── localStorage fallback ────────────────────────────────
 const LB_KEY = 'bomberman_base_lb';
 
-function getLeaderboard() {
+function getLeaderboardLocal() {
   try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
   catch { return []; }
 }
@@ -542,50 +688,44 @@ async function saveScore() {
   const nameEl  = document.getElementById('score-name-input');
   const saveBtn = document.getElementById('btn-save-score');
   const saveMsg = document.getElementById('save-msg');
-  const name = (nameEl.value.trim().toUpperCase() || 'ANON').slice(0, 12);
+  const name    = (nameEl.value.trim().toUpperCase() || 'ANON').slice(0, 12);
 
-  // Always save to localStorage first (works with or without wallet)
-  const lb = getLeaderboard();
+  saveBtn.disabled     = true;
+  saveBtn.style.opacity = '0.4';
+  saveMsg.style.display = 'none';
+
+  // ── 1. Always save locally first ────────────────────
+  const lb = getLeaderboardLocal();
   lb.push({
-    name,
-    score,
-    level,
-    wallet: walletAddress ? shortAddr(walletAddress) : '—',
+    name, score, level,
+    wallet:     walletAddress ? shortAddr(walletAddress) : '—',
     walletFull: walletAddress || '',
-    date: new Date().toLocaleDateString('id-ID')
+    date:       new Date().toLocaleDateString('id-ID'),
   });
   lb.sort((a, b) => b.score - a.score);
   lb.splice(10);
   localStorage.setItem(LB_KEY, JSON.stringify(lb));
 
-  saveBtn.disabled = true;
-  saveBtn.style.opacity = '0.4';
-
-  // If wallet is connected → send onchain attribution tx
-  if (walletAddress && window.ethereum) {
-    saveBtn.textContent = '⏳ SENDING ONCHAIN...';
-    saveMsg.style.display = 'none';
-
+  // ── 2. Submit onchain if wallet connected + contract deployed ──
+  if (walletAddress && window.ethereum && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
+    saveBtn.textContent = '⏳ SAVING ONCHAIN...';
     try {
-      // Encode score data as hex for the transaction data field
-      // Format: score save marker + score value + level
-      const scoreHex  = score.toString(16).padStart(8, '0');
-      const levelHex  = level.toString(16).padStart(4, '0');
-      const scoreData = '0xBASE' + scoreHex + levelHex; // readable marker
+      const calldata = encodeSubmitScore(name, score, level);
+      // Merge with Builder Code dataSuffix for attribution
+      const suffix   = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
+      const data     = calldata + suffix;
 
-      // Send a 0-value self-transaction with Builder Code attribution
-      // This is the minimal onchain signal tracked by base.dev
-      await sendWithAttribution({
-        to:    walletAddress,  // self-send (0 ETH cost beyond gas)
-        value: '0x0',
-        data:  '0x' + scoreHex + levelHex, // score payload
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: walletAddress, to: CONTRACT_ADDRESS, data, value: '0x0' }],
       });
 
-      saveMsg.textContent = '✓ SCORE SAVED ONCHAIN!';
+      console.log('[Leaderboard] onchain score saved:', txHash);
+      saveMsg.textContent = '✓ SAVED ONCHAIN! 🔗';
       saveMsg.style.color = '#4fc3f7';
     } catch (err) {
-      console.warn('[Builder Code] onchain save failed, score kept locally:', err);
-      saveMsg.textContent = '✓ SAVED LOCALLY (tx skipped)';
+      console.warn('[Leaderboard] onchain save failed, kept locally:', err.message);
+      saveMsg.textContent = '✓ SAVED LOCALLY';
       saveMsg.style.color = '#888';
     }
   } else {
@@ -597,9 +737,42 @@ async function saveScore() {
   saveBtn.textContent   = '✔ SAVE TO LEADERBOARD';
 }
 
-function renderLeaderboard() {
-  const lb = getLeaderboard();
+async function renderLeaderboard() {
   const tbody = document.getElementById('lb-tbody');
+  const sub   = document.querySelector('.lb-sub');
+
+  // Try onchain first
+  if (window.ethereum && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
+    tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">⏳ LOADING ONCHAIN...</td></tr>';
+    try {
+      const raw     = await ethCall(encodeGetTopScores());
+      const entries = decodeTopScores(raw);
+
+      if (!entries.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">NO SCORES YET</td></tr>';
+        if (sub) sub.textContent = 'TOP 10 — ONCHAIN (BASE)';
+        return;
+      }
+
+      if (sub) sub.textContent = '🔗 TOP 10 — ONCHAIN (BASE)';
+      tbody.innerHTML = entries.map((e, i) => `
+        <tr>
+          <td class="lb-rank">${['🥇','🥈','🥉'][i] || (i+1)}</td>
+          <td>${e.name}</td>
+          <td class="lb-score-val">${e.score}</td>
+          <td>${e.level}</td>
+          <td class="lb-addr" title="${e.player}">${e.wallet}</td>
+        </tr>
+      `).join('');
+      return;
+    } catch (err) {
+      console.warn('[Leaderboard] onchain fetch failed, fallback to local:', err);
+    }
+  }
+
+  // Fallback: localStorage
+  if (sub) sub.textContent = 'TOP 10 — LOCAL';
+  const lb = getLeaderboardLocal();
   if (!lb.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">NO SCORES YET</td></tr>';
     return;
@@ -616,7 +789,7 @@ function renderLeaderboard() {
 }
 
 function clearLeaderboard() {
-  if (confirm('Clear all leaderboard scores?')) {
+  if (confirm('Clear local leaderboard scores?')) {
     localStorage.removeItem(LB_KEY);
     renderLeaderboard();
   }
