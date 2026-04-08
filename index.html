@@ -595,7 +595,7 @@ function encodeString(str) {
  */
 function encodeSubmitScore(name, scoreVal, levelVal) {
   // selector = keccak256("submitScore(string,uint32,uint16)") first 4 bytes
-  const selector = '0x8b73f7c3'; // precomputed
+  const selector = '0x05953352'; // keccak256("submitScore(string,uint32,uint16)")
   // ABI encode: (string, uint32, uint16)
   // string is dynamic → offset, uint32, uint16, then string data
   const offset    = encodeUint(96);          // offset to string data (3 * 32 bytes)
@@ -609,7 +609,7 @@ function encodeSubmitScore(name, scoreVal, levelVal) {
  * Encode getTopScores() calldata
  */
 function encodeGetTopScores() {
-  return '0x6b8f9e96'; // keccak256("getTopScores()") first 4 bytes
+  return '0x4d81fdb4'; // keccak256("getTopScores()")
 }
 
 /**
