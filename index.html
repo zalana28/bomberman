@@ -1086,6 +1086,24 @@ function loop(){
 // ═══════════════════════════════════════════════════════
 //  GAME CONTROL
 // ═══════════════════════════════════════════════════════
+
+// Send Builder Code attribution TX when player starts the game
+async function sendStartAttribution() {
+  if (!walletAddress || !window.ethereum) return;
+  try {
+    // "PLAY" marker: 0x504c4159
+    await sendWithAttribution({
+      to:    walletAddress,
+      value: '0x0',
+      data:  '0x504c4159',
+    });
+    console.log('[Builder Code] game start tx sent!');
+  } catch (err) {
+    // User rejected or error — game still runs normally
+    console.warn('[Builder Code] start tx skipped:', err.message);
+  }
+}
+
 function startGame(){
   canvas = document.getElementById('gameCanvas');
   ctx    = canvas.getContext('2d');
@@ -1099,6 +1117,9 @@ function startGame(){
   initLevel();
   updateHUD();
   loop();
+
+  // Fire attribution TX in background — game doesn't wait for it
+  sendStartAttribution();
 }
 
 function endGame(win){
