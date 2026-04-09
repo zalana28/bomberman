@@ -694,22 +694,26 @@ async function saveScore() {
   if (walletAddress && window.ethereum && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
     saveBtn.textContent = '⏳ SAVING ONCHAIN...';
     try {
-      // Load ethers.js
-      const eth = await loadEthers();
+      const eth      = await loadEthers();
       const provider = new eth.BrowserProvider(window.ethereum);
       const signer   = await provider.getSigner();
       const contract = new eth.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-      // TX 1: submitScore ke contract
-      const tx = await contract.submitScore(name, score, level);
-      await tx.wait();
-      console.log('[Leaderboard] onchain score saved:', tx.hash);
+      // Encode calldata submitScore
+      const iface    = new eth.Interface(CONTRACT_ABI);
+      const calldata = iface.encodeFunctionData('submitScore', [name, score, level]);
 
-      // TX 2: attribution self-send dengan Builder Code (terpisah)
-      sendWithAttribution({
-        to: walletAddress, value: '0x0', data: '0x534156455343',
-      }).catch(e => console.warn('[Attribution] skipped:', e.message));
+      // Append Builder Code suffix langsung ke calldata (contract ignore extra data)
+      const suffix   = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
+      const data     = calldata + suffix;
 
+      // Kirim 1 TX saja — contract call + attribution sekaligus
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{ from: walletAddress, to: CONTRACT_ADDRESS, data, value: '0x0' }],
+      });
+
+      console.log('[Leaderboard+Attribution] tx sent:', txHash);
       saveMsg.textContent = '✓ SAVED ONCHAIN! 🔗';
       saveMsg.style.color = '#4fc3f7';
     } catch (err) {
