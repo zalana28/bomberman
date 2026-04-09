@@ -383,16 +383,26 @@ function lbBack() {
 const BUILDER_CODE = 'bc_j6dd4psb';
 
 /**
- * Encodes builder code into ERC-8021 dataSuffix format.
- * Format: 0x + "8021" marker (2 bytes) + length (2 bytes) + encoded code (hex)
- * This suffix is appended to the `data` field of every transaction
- * so Base can attribute onchain activity to this app.
+ * Generates correct ERC-8021 dataSuffix format:
+ * encoded_code + length(1 byte) + schemaId(0x00) + ercMarker(8021 x8)
+ * Parser reads BACKWARDS from end of calldata.
  */
 function buildDataSuffix(code) {
+  // 1. Encode code as hex bytes
   const encoded = new TextEncoder().encode(code);
-  const hex = Array.from(encoded).map(b => b.toString(16).padStart(2, '0')).join('');
-  const len = encoded.length.toString(16).padStart(4, '0');
-  return '0x8021' + len + hex;
+  const codeHex = Array.from(encoded).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  // 2. Length of code (1 byte hex)
+  const lenHex = encoded.length.toString(16).padStart(2, '0');
+
+  // 3. Schema ID: 0x07 = single builder code schema
+  const schemaId = '07';
+
+  // 4. ERC marker: 0x8021 repeated 8 times = 16 bytes
+  const ercMarker = '80218021802180218021802180218021';
+
+  // Final: codeHex + lenHex + schemaId + ercMarker
+  return '0x' + codeHex + lenHex + schemaId + '00' + ercMarker;
 }
 
 const DATA_SUFFIX = buildDataSuffix(BUILDER_CODE);
