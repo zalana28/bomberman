@@ -395,14 +395,14 @@ function buildDataSuffix(code) {
   // 2. Length of code (1 byte hex)
   const lenHex = encoded.length.toString(16).padStart(2, '0');
 
-  // 3. Schema ID: 0x07 = single builder code schema
-  const schemaId = '07';
+  // 3. Schema ID: 0x00
+  const schemaId = '00';
 
   // 4. ERC marker: 0x8021 repeated 8 times = 16 bytes
   const ercMarker = '80218021802180218021802180218021';
 
   // Final: codeHex + lenHex + schemaId + ercMarker
-  return '0x' + codeHex + lenHex + schemaId + '00' + ercMarker;
+  return '0x' + codeHex + lenHex + schemaId + ercMarker;
 }
 
 const DATA_SUFFIX = buildDataSuffix(BUILDER_CODE);
