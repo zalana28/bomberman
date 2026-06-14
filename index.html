@@ -251,7 +251,6 @@
     padding:8px 16px; cursor:pointer; width:100%;
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@coinbase/wallet-sdk@4/dist/umd/index.js"></script>
 </head>
 <body>
 
@@ -377,26 +376,70 @@ function lbBack() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  WALLET CONNECT (Base Account via Coinbase Wallet SDK)
+//  WALLET CONNECT (Base Network)
 // ═══════════════════════════════════════════════════════
 //  BASE BUILDER CODE — ERC-8021 Attribution
 // ═══════════════════════════════════════════════════════
 const BUILDER_CODE = 'bc_j6dd4psb';
 
+/**
+ * Generates correct ERC-8021 dataSuffix format:
+ * encoded_code + length(1 byte) + schemaId(0x00) + ercMarker(8021 x8)
+ * Parser reads BACKWARDS from end of calldata.
+ */
 function buildDataSuffix(code) {
+  // 1. Encode code as hex bytes
   const encoded = new TextEncoder().encode(code);
   const codeHex = Array.from(encoded).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  // 2. Length of code (1 byte hex)
   const lenHex = encoded.length.toString(16).padStart(2, '0');
+
+  // 3. Schema ID: 0x00
   const schemaId = '00';
+
+  // 4. ERC marker: 0x8021 repeated 8 times = 16 bytes
   const ercMarker = '80218021802180218021802180218021';
+
+  // Final: codeHex + lenHex + schemaId + ercMarker
   return '0x' + codeHex + lenHex + schemaId + ercMarker;
 }
 
 const DATA_SUFFIX = buildDataSuffix(BUILDER_CODE);
 
-// ── Provider abstraction (Base Account first, MetaMask fallback) ──
+/**
+ * Sends a transaction with the Builder Code dataSuffix attached.
+ * Use this for ANY eth_sendTransaction call in the app.
+ * @param {object} txParams - standard transaction params (to, value, data, etc.)
+ * @returns {string} transaction hash
+ */
+async function sendWithAttribution(txParams) {
+  if (!walletAddress || !window.ethereum) throw new Error('Wallet not connected');
+
+  // Merge existing data with dataSuffix
+  // If tx already has data, append suffix to it; otherwise use suffix alone
+  const existingData = txParams.data || '0x';
+  const existing = existingData.startsWith('0x') ? existingData.slice(2) : existingData;
+  const suffix    = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
+  const mergedData = '0x' + existing + suffix;
+
+  const params = {
+    from: walletAddress,
+    ...txParams,
+    data: mergedData,
+  };
+
+  const txHash = await window.ethereum.request({
+    method: 'eth_sendTransaction',
+    params: [params],
+  });
+
+  console.log(`[Builder Code] tx sent with attribution ${BUILDER_CODE}:`, txHash);
+  return txHash;
+}
+
+// ═══════════════════════════════════════════════════════
 let walletAddress = null;
-let _activeProvider = null;
 
 const BASE_CHAIN_ID = '0x2105'; // 8453 decimal
 const BASE_CHAIN_PARAMS = {
@@ -407,76 +450,37 @@ const BASE_CHAIN_PARAMS = {
   blockExplorerUrls: ['https://basescan.org']
 };
 
-/**
- * Returns the Coinbase Wallet SDK (Base Account) provider,
- * falling back to window.ethereum for injected wallets.
- */
-function getWalletProvider() {
-  if (_activeProvider) return _activeProvider;
-  if (window.CoinbaseWalletSDK) {
-    const sdk = new window.CoinbaseWalletSDK({
-      appName: 'Bomberman Base',
-      appChainIds: [8453],
-    });
-    _activeProvider = sdk.makeWeb3Provider();
-    return _activeProvider;
-  }
-  return window.ethereum || null;
-}
-
-/**
- * Sends a transaction with the Builder Code dataSuffix attached.
- */
-async function sendWithAttribution(txParams) {
-  const provider = _activeProvider || getWalletProvider();
-  if (!walletAddress || !provider) throw new Error('Wallet not connected');
-
-  const existingData = txParams.data || '0x';
-  const existing = existingData.startsWith('0x') ? existingData.slice(2) : existingData;
-  const suffix    = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
-  const mergedData = '0x' + existing + suffix;
-
-  const params = { from: walletAddress, ...txParams, data: mergedData };
-  const txHash = await provider.request({ method: 'eth_sendTransaction', params: [params] });
-  console.log(`[Builder Code] tx sent with attribution ${BUILDER_CODE}:`, txHash);
-  return txHash;
-}
-
-// ═══════════════════════════════════════════════════════
 async function connectWallet() {
   const btn = document.getElementById('btn-connect');
 
   // Already connected — disconnect
   if (walletAddress) {
     walletAddress = null;
-    _activeProvider = null;
     updateWalletUI();
     return;
   }
 
-  const provider = getWalletProvider();
-  if (!provider) {
-    alert('⚠️ No wallet found! Please reload and use Base Account or install a Web3 wallet.');
+  if (!window.ethereum) {
+    alert('⚠️ Install MetaMask / Coinbase Wallet\nor open in a Web3 browser!');
     return;
   }
 
   try {
     btn.textContent = '⏳ CONNECTING...';
-    btn.disabled = true;
 
-    const accounts = await provider.request({ method: 'eth_requestAccounts' });
+    // Request accounts
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     walletAddress = accounts[0];
-    _activeProvider = provider;
 
-    // Switch to / add Base network
+    // Switch / add Base network
     try {
-      await provider.request({
+      await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: BASE_CHAIN_ID }]
       });
     } catch (switchErr) {
       if (switchErr.code === 4902) {
-        await provider.request({
+        await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [BASE_CHAIN_PARAMS]
         });
@@ -485,18 +489,14 @@ async function connectWallet() {
 
     updateWalletUI();
 
-    // Listen for account changes
-    if (provider.on) {
-      provider.on('accountsChanged', accs => {
-        walletAddress = accs[0] || null;
-        if (!walletAddress) _activeProvider = null;
-        updateWalletUI();
-      });
-    }
+    // Listen for account change
+    window.ethereum.on('accountsChanged', accs => {
+      walletAddress = accs[0] || null;
+      updateWalletUI();
+    });
 
   } catch (e) {
-    btn.textContent = '🔗 CONNECT WALLET';
-    btn.disabled = false;
+    btn.textContent = '🔗 HUBUNGKAN WALLET';
     console.error('Wallet error:', e);
   }
 }
@@ -519,11 +519,6 @@ function updateWalletUI() {
     addr.style.display = 'block';
     btn.textContent = '✕ DISCONNECT';
     btn.className = 'connected';
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
     if (hud) { hud.textContent = shortAddr(walletAddress); hud.title = walletAddress; }
   } else {
     st.textContent = 'WALLET NOT CONNECTED';
@@ -531,11 +526,6 @@ function updateWalletUI() {
     addr.style.display = 'none';
     btn.textContent = '🔗 CONNECT WALLET';
     btn.className = '';
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
     if (hud) hud.textContent = '';
   }
 }
@@ -711,11 +701,11 @@ async function saveScore() {
   localStorage.setItem(LB_KEY, JSON.stringify(lb));
 
   // ── 2. Submit onchain if wallet connected + contract deployed ──
-  if (walletAddress && (_activeProvider || window.ethereum) && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
+  if (walletAddress && window.ethereum && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
     saveBtn.textContent = '⏳ SAVING ONCHAIN...';
     try {
       const eth      = await loadEthers();
-      const provider = new eth.BrowserProvider(_activeProvider || window.ethereum);
+      const provider = new eth.BrowserProvider(window.ethereum);
       const signer   = await provider.getSigner();
       const contract = new eth.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
@@ -748,19 +738,17 @@ async function saveScore() {
 
   saveMsg.style.display = 'block';
   saveBtn.textContent   = '✔ SAVE TO LEADERBOARD';
-  saveBtn.disabled      = false;
-  saveBtn.style.opacity = '1';
 }
 
 async function renderLeaderboard() {
   const tbody = document.getElementById('lb-tbody');
   const sub   = document.querySelector('.lb-sub');
 
-  if ((_activeProvider || window.ethereum) && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
+  if (window.ethereum && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
     tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">⏳ LOADING ONCHAIN...</td></tr>';
     try {
       const eth      = await loadEthers();
-      const provider = new eth.BrowserProvider(_activeProvider || window.ethereum);
+      const provider = new eth.BrowserProvider(window.ethereum);
       const contract = new eth.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       const entries  = await contract.getTopScores();
 
@@ -970,9 +958,7 @@ function genMap(lvl) {
 // ═══════════════════════════════════════════════════════
 //  INIT LEVEL
 // ═══════════════════════════════════════════════════════
-let nextLevelPending = false;
 function initLevel() {
-  nextLevelPending = false;
   gmap = genMap(level); bombs = []; fires = []; portals = []; invincible = 0; lastMove = 0;
   player = {
     col:1, row:1,
@@ -1117,8 +1103,7 @@ function updateEnemies() {
   document.getElementById('enemyDisplay').textContent = alive;
   if (alive === 0) portals.forEach(p => p.visible = true);
   for (const p of portals) {
-    if (!nextLevelPending && p.visible && p.col === player.col && p.row === player.row) {
-      nextLevelPending = true;
+    if (p.visible && p.col === player.col && p.row === player.row) {
       level++; score += 500;
       setTimeout(() => initLevel(), 300);
     }
