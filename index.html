@@ -1011,7 +1011,7 @@ function initLevel() {
     bombRange: 2 + level,
     activeBombs: 0, moving: false, frame: 0, dir: 'down', dead: false
   };
-  const n = 2 + level;
+  const n = 2 + level + Math.floor(level / 3);
   const corners = [[COLS-2,1],[1,ROWS-2],[COLS-2,ROWS-2]];
   enemies = [];
   for (let i = 0; i < n; i++) {
@@ -1030,7 +1030,7 @@ function initLevel() {
       col, row, type: i % 3,
       dir: ['up','down','left','right'][~~(Math.random()*4)],
       moveTimer: 0,
-      moveDelay: Math.max(8, 28 - level*2 + i*4),
+      moveDelay: Math.max(5, 22 - level*2 + i*3),
       frame: 0, dead: false, deathFrame: 0
     });
   }
@@ -1157,24 +1157,97 @@ function updateEnemies() {
   }
 }
 
+// Tiles that are (or will soon be) inside a bomb blast — enemies avoid these
+function bombDangerTiles() {
+  const danger = new Set();
+  for (const b of bombs) {
+    danger.add(b.row + ',' + b.col);
+    for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      for (let i = 1; i <= b.range; i++) {
+        const nr = b.row + dr*i, nc = b.col + dc*i;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
+        if (gmap[nr][nc] === WALL) break;
+        danger.add(nr + ',' + nc);
+        if (gmap[nr][nc] === BLOCK) break;
+      }
+    }
+  }
+  return danger;
+}
+
+function enemyWalkable(r, c) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
+  if (gmap[r][c] === WALL || gmap[r][c] === BLOCK) return false;
+  if (bombs.find(b => b.col === c && b.row === r)) return false;
+  return true;
+}
+
+// BFS shortest path toward the player; returns the first step tile (or null)
+function bfsStepToPlayer(e, danger) {
+  const start = e.row + ',' + e.col;
+  const target = player.row + ',' + player.col;
+  const prev = { [start]: null };
+  const queue = [[e.row, e.col]];
+  let reached = false;
+  while (queue.length) {
+    const [r, c] = queue.shift();
+    if (r === player.row && c === player.col) { reached = true; break; }
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr = r + dr, nc = c + dc, key = nr + ',' + nc;
+      if (key in prev) continue;
+      if (!enemyWalkable(nr, nc)) continue;
+      if (danger.has(key) && key !== target) continue; // don't path through fire
+      prev[key] = r + ',' + c;
+      queue.push([nr, nc]);
+    }
+  }
+  if (!reached) return null;
+  let cur = target;
+  while (prev[cur] && prev[cur] !== start) cur = prev[cur];
+  if (prev[cur] !== start) return null;
+  const [nr, nc] = cur.split(',').map(Number);
+  return { row: nr, col: nc };
+}
+
 function moveEnemy(e) {
   const D = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
   const dk = Object.keys(D);
-  let td = e.dir;
-  if (Math.random() < 0.35) {
-    const dc = player.col - e.col, dr = player.row - e.row;
-    td = Math.abs(dc) > Math.abs(dr) ? (dc > 0 ? 'right' : 'left') : (dr > 0 ? 'down' : 'up');
+  const danger = bombDangerTiles();
+
+  // 1) Self-preservation: if standing in a blast zone, flee to a safe tile
+  if (danger.has(e.row + ',' + e.col)) {
+    const safe = [];
+    for (const d of dk) {
+      const [dc, dr] = D[d];
+      const nc = e.col + dc, nr = e.row + dr;
+      if (enemyWalkable(nr, nc) && !danger.has(nr + ',' + nc)) safe.push([nc, nr, d]);
+    }
+    if (safe.length) {
+      const [c, r, d] = safe[~~(Math.random() * safe.length)];
+      e.col = c; e.row = r; e.dir = d; return;
+    }
   }
+
+  // 2) Hunt the player with real pathfinding — chance rises each level
+  const chaseChance = Math.min(0.9, 0.45 + level * 0.07);
+  if (Math.random() < chaseChance) {
+    const step = bfsStepToPlayer(e, danger);
+    if (step) {
+      e.dir = step.col < e.col ? 'left' : step.col > e.col ? 'right' : step.row < e.row ? 'up' : 'down';
+      e.col = step.col; e.row = step.row; return;
+    }
+  }
+
+  // 3) Otherwise wander, still dodging blast tiles
   const try1 = d => {
-    const [dc,dr] = D[d];
-    const nc = e.col+dc, nr = e.row+dr;
-    if (nc<0||nc>=COLS||nr<0||nr>=ROWS) return false;
-    if (gmap[nr][nc]===WALL||gmap[nr][nc]===BLOCK) return false;
-    if (bombs.find(b=>b.col===nc&&b.row===nr)) return false;
-    e.col=nc; e.row=nr; e.dir=d; return true;
+    const [dc, dr] = D[d];
+    const nc = e.col + dc, nr = e.row + dr;
+    if (!enemyWalkable(nr, nc)) return false;
+    if (danger.has(nr + ',' + nc)) return false;
+    e.col = nc; e.row = nr; e.dir = d; return true;
   };
-  if (!try1(td)) {
-    const sh = dk.filter(d => d !== td).sort(() => Math.random() - .5);
+  if (!try1(e.dir)) {
+    const sh = dk.filter(d => d !== e.dir).sort(() => Math.random() - .5);
     for (const d of sh) if (try1(d)) break;
   }
 }
