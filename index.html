@@ -1031,7 +1031,7 @@ function initLevel() {
       dir: ['up','down','left','right'][~~(Math.random()*4)],
       moveTimer: 0,
       moveDelay: Math.max(5, 22 - level*2 + i*3),
-      frame: 0, dead: false, deathFrame: 0
+      frame: 0, dead: false, deathFrame: 0, activeBombs: 0
     });
   }
   // Portal hidden under a block
@@ -1086,14 +1086,18 @@ function placeBomb() {
   if (player.activeBombs >= player.maxBombs) return;
   const c = player.col, r = player.row;
   if (bombs.find(b => b.col === c && b.row === r)) return;
-  bombs.push({ col:c, row:r, timer:150, range:player.bombRange });
+  bombs.push({ col:c, row:r, timer:90, range:player.bombRange, owner:'player' });
   player.activeBombs++;
 }
 
 function updateBombs() {
   for (let i = bombs.length - 1; i >= 0; i--) {
     const b = bombs[i]; b.timer--;
-    if (b.timer <= 0) { explode(b); bombs.splice(i,1); player.activeBombs = Math.max(0, player.activeBombs-1); }
+    if (b.timer <= 0) {
+      explode(b); bombs.splice(i,1);
+      if (b.owner === 'enemy') { if (b.ownerEnemy) b.ownerEnemy.activeBombs = Math.max(0, (b.ownerEnemy.activeBombs||0)-1); }
+      else player.activeBombs = Math.max(0, player.activeBombs-1);
+    }
   }
 }
 
@@ -1140,7 +1144,7 @@ function updateEnemies() {
     if (e.dead) { e.deathFrame++; continue; }
     alive++;
     e.moveTimer++;
-    if (e.moveTimer >= e.moveDelay) { e.moveTimer = 0; moveEnemy(e); }
+    if (e.moveTimer >= e.moveDelay) { e.moveTimer = 0; moveEnemy(e); enemyTryBomb(e); }
     e.frame = (e.frame + 1) % 4;
     if (invincible === 0 && e.col === player.col && e.row === player.row) playerDie();
     if (fires.find(f => f.col === e.col && f.row === e.row)) { e.dead = true; score += 100 + level*50; updateHUD(); }
@@ -1155,6 +1159,19 @@ function updateEnemies() {
     }
     p.frame = (p.frame + 1) % 60;
   }
+}
+
+// Enemies drop bombs near the player (from level 2 onward)
+function enemyTryBomb(e) {
+  if (e.dead || level < 2) return;
+  if ((e.activeBombs || 0) >= 1) return;
+  if (bombs.find(b => b.col === e.col && b.row === e.row)) return;
+  const dist   = Math.abs(e.col - player.col) + Math.abs(e.row - player.row);
+  const inLine = (e.col === player.col || e.row === player.row);
+  const chance = (inLine && dist <= 4) ? 0.45 : 0.05;
+  if (Math.random() > chance) return;
+  e.activeBombs = (e.activeBombs || 0) + 1;
+  bombs.push({ col:e.col, row:e.row, timer:80, range:2, owner:'enemy', ownerEnemy:e });
 }
 
 // Tiles that are (or will soon be) inside a bomb blast — enemies avoid these
