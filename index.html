@@ -258,44 +258,24 @@
     align-items:center; justify-content:center;
   }
   #wm-overlay.open { display:flex; }
-  #wm-modal {
-    background:#0d0d18; border:1px solid #2a2a3a;
-    width:320px; max-width:94vw;
-  }
-  .wm-head {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:14px 16px; border-bottom:1px solid #1a1a2e;
-  }
+  #wm-modal { background:#0d0d18; border:1px solid #2a2a3a; width:320px; max-width:94vw; }
+  .wm-head { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #1a1a2e; }
   .wm-head-title { font-size:8px; color:#fff; letter-spacing:1px; }
-  .wm-close-btn {
-    background:none; border:none; color:#555; font-size:16px;
-    cursor:pointer; padding:0; line-height:1; font-family:monospace;
-  }
+  .wm-close-btn { background:none; border:none; color:#555; font-size:16px; cursor:pointer; padding:0; line-height:1; font-family:monospace; }
   .wm-close-btn:hover { color:#fff; }
   #wm-list { padding:8px; }
-  .wm-opt {
-    display:flex; align-items:center; gap:12px;
-    width:100%; padding:11px 12px; background:none; border:none;
-    cursor:pointer; border-radius:8px; text-align:left;
-    transition:background .1s;
-  }
+  .wm-opt { display:flex; align-items:center; gap:12px; width:100%; padding:11px 12px; background:none; border:none; cursor:pointer; border-radius:8px; text-align:left; transition:background .1s; }
   .wm-opt:hover { background:#1a1a2e; }
-  .wm-opt-icon {
-    width:40px; height:40px; border-radius:10px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-    overflow:hidden; font-size:22px;
-  }
+  .wm-opt-icon { width:40px; height:40px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:22px; }
   .wm-opt-text { flex:1; display:flex; flex-direction:column; gap:4px; }
   .wm-opt-name { font-family:'Press Start 2P',monospace; font-size:7px; color:#fff; }
   .wm-opt-desc { font-family:'Press Start 2P',monospace; font-size:5px; color:#555; }
-  .wm-badge {
-    font-family:'Press Start 2P',monospace; font-size:5px;
-    padding:3px 7px; border-radius:20px; white-space:nowrap; flex-shrink:0;
-  }
+  .wm-badge { font-family:'Press Start 2P',monospace; font-size:5px; padding:3px 7px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
   .badge-rec  { background:#0052ff22; color:#4d8cff; border:1px solid #0052ff55; }
   .badge-inst { background:#16a34a22; color:#4ade80; border:1px solid #16a34a55; }
   .badge-get  { background:#1a1a2e;   color:#555;    border:1px solid #2a2a3a;   }
   .wm-divider { height:1px; background:#1a1a2e; margin:4px 8px; }
+  .wm-note { font-family:'Press Start 2P',monospace; font-size:5px; color:#666; line-height:1.8; padding:10px 14px; border-top:1px solid #1a1a2e; text-align:center; }
 </style>
 <script src="https://unpkg.com/@base-org/account/dist/base-account.min.js"></script>
 </head>
@@ -308,6 +288,7 @@
       <button class="wm-close-btn" onclick="closeWalletModal()">✕</button>
     </div>
     <div id="wm-list"></div>
+    <div class="wm-note">Connect &amp; pay a small Base gas fee to play</div>
   </div>
 </div>
 
@@ -457,7 +438,7 @@ async function sendWithAttribution(txParams) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  WALLET STATE + MODAL
+//  WALLET STATE + SELECTION MODAL
 // ═══════════════════════════════════════════════════════
 let walletAddress = null;
 let _activeProvider = null;
@@ -470,7 +451,6 @@ const BASE_CHAIN_PARAMS = {
   blockExplorerUrls: ['https://basescan.org'],
 };
 
-// Detect all injected providers (EIP-5749 multi-provider aware)
 function detectInjected() {
   const all = window.ethereum?.providers || (window.ethereum ? [window.ethereum] : []);
   const res = { metamask: null, coinbaseExt: null };
@@ -478,7 +458,6 @@ function detectInjected() {
     if ((p.isCoinbaseWallet || p.isCoinbaseBrowser) && !res.coinbaseExt) res.coinbaseExt = p;
     else if (p.isMetaMask && !res.metamask) res.metamask = p;
   }
-  // Single-provider fallback
   if (!res.metamask && !res.coinbaseExt && window.ethereum) {
     if (window.ethereum.isCoinbaseWallet) res.coinbaseExt = window.ethereum;
     else if (window.ethereum.isMetaMask)  res.metamask    = window.ethereum;
@@ -486,7 +465,6 @@ function detectInjected() {
   return res;
 }
 
-// Official Base Account SDK provider
 let _baseProvider = null;
 function getBaseProvider() {
   if (_baseProvider) return _baseProvider;
@@ -498,42 +476,25 @@ function getBaseProvider() {
   return _baseProvider;
 }
 
-// Wallet icons (inline SVG / emoji)
 const ICON_BASE = `<div style="width:40px;height:40px;border-radius:10px;background:#0052ff;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 24C18.627 24 24 18.627 24 12C24 5.373 18.627 0 12 0C5.373 0 0 5.373 0 12C0 18.627 5.373 24 12 24ZM12 19.2C15.977 19.2 19.2 15.977 19.2 12C19.2 8.024 15.977 4.8 12 4.8C8.024 4.8 4.8 8.024 4.8 12C4.8 15.977 8.024 19.2 12 19.2Z" fill="white"/></svg></div>`;
 const ICON_MM   = `<div style="width:40px;height:40px;border-radius:10px;background:#f6851b22;border:1px solid #f6851b44;display:flex;align-items:center;justify-content:center;font-size:22px">🦊</div>`;
 
 function buildWallets() {
   const inj = detectInjected();
   return [
-    {
-      id: 'base-account', name: 'Base Account',
-      desc: 'Smart Wallet \u00b7 No extension needed',
-      icon: ICON_BASE, badge: 'RECOMMENDED', badgeClass: 'badge-rec',
-      getProvider: getBaseProvider,
-    },
-    {
-      id: 'metamask', name: 'MetaMask',
-      desc: inj.metamask ? 'Browser extension detected' : 'Not installed',
-      icon: ICON_MM,
-      badge: inj.metamask ? 'INSTALLED' : 'GET STARTED',
-      badgeClass: inj.metamask ? 'badge-inst' : 'badge-get',
-      getProvider: inj.metamask ? (() => inj.metamask) : null,
-      installUrl: 'https://metamask.io',
-    },
-    {
-      id: 'coinbase-ext', name: 'Coinbase Wallet',
-      desc: inj.coinbaseExt ? 'Browser extension detected' : 'Not installed',
-      icon: ICON_BASE,
-      badge: inj.coinbaseExt ? 'INSTALLED' : 'GET STARTED',
-      badgeClass: inj.coinbaseExt ? 'badge-inst' : 'badge-get',
-      getProvider: inj.coinbaseExt ? (() => inj.coinbaseExt) : null,
-      installUrl: 'https://www.coinbase.com/wallet',
-    },
+    { id:'base-account', name:'Base Account', desc:'Smart Wallet \u00b7 No extension needed',
+      icon:ICON_BASE, badge:'RECOMMENDED', badgeClass:'badge-rec', getProvider:getBaseProvider },
+    { id:'metamask', name:'MetaMask', desc: inj.metamask ? 'Browser extension detected' : 'Not installed',
+      icon:ICON_MM, badge: inj.metamask ? 'INSTALLED' : 'GET STARTED', badgeClass: inj.metamask ? 'badge-inst' : 'badge-get',
+      getProvider: inj.metamask ? (() => inj.metamask) : null, installUrl:'https://metamask.io' },
+    { id:'coinbase-ext', name:'Coinbase Wallet', desc: inj.coinbaseExt ? 'Browser extension detected' : 'Not installed',
+      icon:ICON_BASE, badge: inj.coinbaseExt ? 'INSTALLED' : 'GET STARTED', badgeClass: inj.coinbaseExt ? 'badge-inst' : 'badge-get',
+      getProvider: inj.coinbaseExt ? (() => inj.coinbaseExt) : null, installUrl:'https://www.coinbase.com/wallet' },
   ];
 }
 
 function openWalletModal() {
-  const list    = document.getElementById('wm-list');
+  const list = document.getElementById('wm-list');
   const wallets = buildWallets();
   list.innerHTML = '';
   wallets.forEach((w, i) => {
@@ -553,14 +514,10 @@ function closeWalletModal() {
 
 async function handleWalletSelect(wallet) {
   const provider = wallet.getProvider ? wallet.getProvider() : null;
-  if (!provider) {
-    if (wallet.installUrl) window.open(wallet.installUrl, '_blank');
-    return;
-  }
+  if (!provider) { if (wallet.installUrl) window.open(wallet.installUrl, '_blank'); return; }
   closeWalletModal();
   const btn = document.getElementById('btn-connect');
-  btn.textContent = '\u23f3 CONNECTING...';
-  btn.disabled = true;
+  if (btn) { btn.textContent = '\u23f3 CONNECTING...'; btn.disabled = true; }
   try {
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     walletAddress   = accounts[0];
@@ -579,8 +536,7 @@ async function handleWalletSelect(wallet) {
       });
     }
   } catch (e) {
-    btn.textContent = '\ud83d\udd17 CONNECT WALLET';
-    btn.disabled = false;
+    if (btn) { btn.textContent = '\ud83d\udd17 CONNECT WALLET'; btn.disabled = false; }
     console.error('Wallet error:', e);
   }
 }
@@ -593,6 +549,34 @@ function connectWallet() {
     return;
   }
   openWalletModal();
+}
+
+function shortAddr(addr) {
+  if (!addr) return '';
+  return addr.slice(0,6) + '...' + addr.slice(-4);
+}
+
+function updateWalletUI() {
+  const st   = document.getElementById('wallet-status');
+  const addr = document.getElementById('wallet-addr');
+  const btn  = document.getElementById('btn-connect');
+  const hud  = document.getElementById('hudWallet');
+  if (walletAddress) {
+    if (st)   { st.textContent = 'CONNECTED — BASE NETWORK'; st.className = 'connected'; }
+    if (addr) { addr.textContent = shortAddr(walletAddress); addr.style.display = 'block'; }
+    if (btn)  { btn.textContent = '\u2715 DISCONNECT'; btn.className = 'connected'; btn.disabled = false; }
+    if (hud)  { hud.textContent = shortAddr(walletAddress); hud.title = walletAddress; }
+  } else {
+    if (st)   { st.textContent = 'WALLET NOT CONNECTED'; st.className = ''; }
+    if (addr) { addr.style.display = 'none'; }
+    if (btn)  { btn.textContent = '\ud83d\udd17 CONNECT WALLET'; btn.className = ''; btn.disabled = false; }
+    if (hud)  { hud.textContent = ''; }
+  }
+}
+
+function prefillNameFromWallet() {
+  const inp = document.getElementById('score-name-input');
+  if (inp && walletAddress && !inp.value) inp.value = shortAddr(walletAddress);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1346,22 +1330,46 @@ async function sendStartAttribution() {
   }
 }
 
+let _starting = false;
+
+// Require wallet + a paid Base gas-fee transaction before each game
+async function payAndStart(afterPay) {
+  if (_starting) return;
+  if (!walletAddress || !_activeProvider) { openWalletModal(); return; }
+  _starting = true;
+  const sb = document.getElementById('startBtn');
+  const prev = sb ? sb.textContent : '';
+  if (sb) { sb.textContent = '⏳ CONFIRM IN WALLET...'; sb.disabled = true; }
+  try {
+    // "PLAY" marker (0x504c4159) + Builder Code attribution — costs Base gas
+    await sendWithAttribution({ to: walletAddress, value: '0x0', data: '0x504c4159' });
+    console.log('[Builder Code] play fee paid');
+  } catch (err) {
+    console.warn('[Builder Code] play tx failed/rejected:', err.message);
+    if (sb) { sb.textContent = prev; sb.disabled = false; }
+    _starting = false;
+    alert('⚠️ Kamu perlu menyetujui & membayar gas fee di wallet untuk bermain.');
+    return;
+  }
+  if (sb) { sb.textContent = prev; sb.disabled = false; }
+  _starting = false;
+  afterPay();
+}
+
 function startGame(){
-  canvas = document.getElementById('gameCanvas');
-  ctx    = canvas.getContext('2d');
-  score  = 0; lives = 3; level = 1; frameCount = 0;
-  gameState = 'playing';
-
-  showScreen('game-wrap');
-  updateWalletUI();
-  resizeCanvas();
-  bindMobileControls();
-  initLevel();
-  updateHUD();
-  loop();
-
-  // Fire attribution TX in background — game doesn't wait for it
-  sendStartAttribution();
+  payAndStart(() => {
+    canvas = document.getElementById('gameCanvas');
+    ctx    = canvas.getContext('2d');
+    score  = 0; lives = 3; level = 1; frameCount = 0;
+    gameState = 'playing';
+    showScreen('game-wrap');
+    updateWalletUI();
+    resizeCanvas();
+    bindMobileControls();
+    initLevel();
+    updateHUD();
+    loop();
+  });
 }
 
 function endGame(win){
@@ -1382,12 +1390,14 @@ function endGame(win){
 }
 
 function restartGame(){
-  showScreen('game-wrap');
-  score = 0; lives = 3; level = 1; frameCount = 0;
-  gameState = 'playing';
-  resizeCanvas();
-  initLevel(); updateHUD();
-  loop();
+  payAndStart(() => {
+    showScreen('game-wrap');
+    score = 0; lives = 3; level = 1; frameCount = 0;
+    gameState = 'playing';
+    resizeCanvas();
+    initLevel(); updateHUD();
+    loop();
+  });
 }
 
 // ═══════════════════════════════════════════════════════
