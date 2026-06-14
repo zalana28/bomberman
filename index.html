@@ -250,10 +250,67 @@
     font-family:'Press Start 2P',monospace; font-size:6px;
     padding:8px 16px; cursor:pointer; width:100%;
   }
+
+  /* ══════════════ WALLET MODAL ══════════════ */
+  #wm-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.85); z-index:500;
+    align-items:center; justify-content:center;
+  }
+  #wm-overlay.open { display:flex; }
+  #wm-modal {
+    background:#0d0d18; border:1px solid #2a2a3a;
+    width:320px; max-width:94vw;
+  }
+  .wm-head {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 16px; border-bottom:1px solid #1a1a2e;
+  }
+  .wm-head-title { font-size:8px; color:#fff; letter-spacing:1px; }
+  .wm-close-btn {
+    background:none; border:none; color:#555; font-size:16px;
+    cursor:pointer; padding:0; line-height:1; font-family:monospace;
+  }
+  .wm-close-btn:hover { color:#fff; }
+  #wm-list { padding:8px; }
+  .wm-opt {
+    display:flex; align-items:center; gap:12px;
+    width:100%; padding:11px 12px; background:none; border:none;
+    cursor:pointer; border-radius:8px; text-align:left;
+    transition:background .1s;
+  }
+  .wm-opt:hover { background:#1a1a2e; }
+  .wm-opt-icon {
+    width:40px; height:40px; border-radius:10px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; font-size:22px;
+  }
+  .wm-opt-text { flex:1; display:flex; flex-direction:column; gap:4px; }
+  .wm-opt-name { font-family:'Press Start 2P',monospace; font-size:7px; color:#fff; }
+  .wm-opt-desc { font-family:'Press Start 2P',monospace; font-size:5px; color:#555; }
+  .wm-badge {
+    font-family:'Press Start 2P',monospace; font-size:5px;
+    padding:3px 7px; border-radius:20px; white-space:nowrap; flex-shrink:0;
+  }
+  .badge-rec  { background:#0052ff22; color:#4d8cff; border:1px solid #0052ff55; }
+  .badge-inst { background:#16a34a22; color:#4ade80; border:1px solid #16a34a55; }
+  .badge-get  { background:#1a1a2e;   color:#555;    border:1px solid #2a2a3a;   }
+  .wm-divider { height:1px; background:#1a1a2e; margin:4px 8px; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@coinbase/wallet-sdk@4/dist/umd/index.js"></script>
+<script src="https://unpkg.com/@base-org/account/dist/base-account.min.js"></script>
 </head>
 <body>
+<!-- ██████████ WALLET MODAL ██████████ -->
+<div id="wm-overlay" onclick="if(event.target===this)closeWalletModal()">
+  <div id="wm-modal">
+    <div class="wm-head">
+      <span class="wm-head-title">CONNECT WALLET</span>
+      <button class="wm-close-btn" onclick="closeWalletModal()">✕</button>
+    </div>
+    <div id="wm-list"></div>
+  </div>
+</div>
+
 
 <!-- ██████████ TITLE SCREEN ██████████ -->
 <div id="title-screen" class="screen active">
@@ -377,115 +434,143 @@ function lbBack() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  WALLET CONNECT (Base Account via Coinbase Wallet SDK)
-// ═══════════════════════════════════════════════════════
-//  BASE BUILDER CODE — ERC-8021 Attribution
+//  BASE BUILDER CODE — ERC-8021 Attribution  (DO NOT MODIFY)
 // ═══════════════════════════════════════════════════════
 const BUILDER_CODE = 'bc_j6dd4psb';
 
 function buildDataSuffix(code) {
   const encoded = new TextEncoder().encode(code);
   const codeHex = Array.from(encoded).map(b => b.toString(16).padStart(2, '0')).join('');
-  const lenHex = encoded.length.toString(16).padStart(2, '0');
-  const schemaId = '00';
-  const ercMarker = '80218021802180218021802180218021';
-  return '0x' + codeHex + lenHex + schemaId + ercMarker;
+  const lenHex  = encoded.length.toString(16).padStart(2, '0');
+  return '0x' + codeHex + lenHex + '00' + '80218021802180218021802180218021';
 }
-
 const DATA_SUFFIX = buildDataSuffix(BUILDER_CODE);
 
-// ── Provider abstraction (Base Account first, MetaMask fallback) ──
-let walletAddress = null;
-let _activeProvider = null;
-
-const BASE_CHAIN_ID = '0x2105'; // 8453 decimal
-const BASE_CHAIN_PARAMS = {
-  chainId: BASE_CHAIN_ID,
-  chainName: 'Base',
-  rpcUrls: ['https://mainnet.base.org'],
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-  blockExplorerUrls: ['https://basescan.org']
-};
-
-/**
- * Returns the Coinbase Wallet SDK (Base Account) provider,
- * falling back to window.ethereum for injected wallets.
- */
-function getWalletProvider() {
-  if (_activeProvider) return _activeProvider;
-  if (window.CoinbaseWalletSDK) {
-    const sdk = new window.CoinbaseWalletSDK({
-      appName: 'Bomberman Base',
-      appChainIds: [8453],
-    });
-    _activeProvider = sdk.makeWeb3Provider();
-    return _activeProvider;
-  }
-  return window.ethereum || null;
-}
-
-/**
- * Sends a transaction with the Builder Code dataSuffix attached.
- */
 async function sendWithAttribution(txParams) {
-  const provider = _activeProvider || getWalletProvider();
-  if (!walletAddress || !provider) throw new Error('Wallet not connected');
-
-  const existingData = txParams.data || '0x';
-  const existing = existingData.startsWith('0x') ? existingData.slice(2) : existingData;
-  const suffix    = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
-  const mergedData = '0x' + existing + suffix;
-
-  const params = { from: walletAddress, ...txParams, data: mergedData };
-  const txHash = await provider.request({ method: 'eth_sendTransaction', params: [params] });
+  if (!walletAddress || !_activeProvider) throw new Error('Wallet not connected');
+  const existing = (txParams.data || '0x').replace(/^0x/, '');
+  const suffix   = DATA_SUFFIX.replace(/^0x/, '');
+  const params   = { from: walletAddress, ...txParams, data: '0x' + existing + suffix };
+  const txHash   = await _activeProvider.request({ method: 'eth_sendTransaction', params: [params] });
   console.log(`[Builder Code] tx sent with attribution ${BUILDER_CODE}:`, txHash);
   return txHash;
 }
 
 // ═══════════════════════════════════════════════════════
-async function connectWallet() {
-  const btn = document.getElementById('btn-connect');
+//  WALLET STATE + MODAL
+// ═══════════════════════════════════════════════════════
+let walletAddress = null;
+let _activeProvider = null;
 
-  // Already connected — disconnect
-  if (walletAddress) {
-    walletAddress = null;
-    _activeProvider = null;
-    updateWalletUI();
-    return;
+const BASE_CHAIN_ID = '0x2105';
+const BASE_CHAIN_PARAMS = {
+  chainId: BASE_CHAIN_ID, chainName: 'Base',
+  rpcUrls: ['https://mainnet.base.org'],
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  blockExplorerUrls: ['https://basescan.org'],
+};
+
+// Detect all injected providers (EIP-5749 multi-provider aware)
+function detectInjected() {
+  const all = window.ethereum?.providers || (window.ethereum ? [window.ethereum] : []);
+  const res = { metamask: null, coinbaseExt: null };
+  for (const p of all) {
+    if ((p.isCoinbaseWallet || p.isCoinbaseBrowser) && !res.coinbaseExt) res.coinbaseExt = p;
+    else if (p.isMetaMask && !res.metamask) res.metamask = p;
   }
+  // Single-provider fallback
+  if (!res.metamask && !res.coinbaseExt && window.ethereum) {
+    if (window.ethereum.isCoinbaseWallet) res.coinbaseExt = window.ethereum;
+    else if (window.ethereum.isMetaMask)  res.metamask    = window.ethereum;
+  }
+  return res;
+}
 
-  const provider = getWalletProvider();
+// Official Base Account SDK provider
+let _baseProvider = null;
+function getBaseProvider() {
+  if (_baseProvider) return _baseProvider;
+  if (!window.createBaseAccountSDK) return null;
+  _baseProvider = window.createBaseAccountSDK({
+    appName: 'Bomberman Base',
+    appLogoUrl: 'https://bomberman.my.id/favicon.ico',
+  }).getProvider();
+  return _baseProvider;
+}
+
+// Wallet icons (inline SVG / emoji)
+const ICON_BASE = `<div style="width:40px;height:40px;border-radius:10px;background:#0052ff;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 24C18.627 24 24 18.627 24 12C24 5.373 18.627 0 12 0C5.373 0 0 5.373 0 12C0 18.627 5.373 24 12 24ZM12 19.2C15.977 19.2 19.2 15.977 19.2 12C19.2 8.024 15.977 4.8 12 4.8C8.024 4.8 4.8 8.024 4.8 12C4.8 15.977 8.024 19.2 12 19.2Z" fill="white"/></svg></div>`;
+const ICON_MM   = `<div style="width:40px;height:40px;border-radius:10px;background:#f6851b22;border:1px solid #f6851b44;display:flex;align-items:center;justify-content:center;font-size:22px">🦊</div>`;
+
+function buildWallets() {
+  const inj = detectInjected();
+  return [
+    {
+      id: 'base-account', name: 'Base Account',
+      desc: 'Smart Wallet \u00b7 No extension needed',
+      icon: ICON_BASE, badge: 'RECOMMENDED', badgeClass: 'badge-rec',
+      getProvider: getBaseProvider,
+    },
+    {
+      id: 'metamask', name: 'MetaMask',
+      desc: inj.metamask ? 'Browser extension detected' : 'Not installed',
+      icon: ICON_MM,
+      badge: inj.metamask ? 'INSTALLED' : 'GET STARTED',
+      badgeClass: inj.metamask ? 'badge-inst' : 'badge-get',
+      getProvider: inj.metamask ? (() => inj.metamask) : null,
+      installUrl: 'https://metamask.io',
+    },
+    {
+      id: 'coinbase-ext', name: 'Coinbase Wallet',
+      desc: inj.coinbaseExt ? 'Browser extension detected' : 'Not installed',
+      icon: ICON_BASE,
+      badge: inj.coinbaseExt ? 'INSTALLED' : 'GET STARTED',
+      badgeClass: inj.coinbaseExt ? 'badge-inst' : 'badge-get',
+      getProvider: inj.coinbaseExt ? (() => inj.coinbaseExt) : null,
+      installUrl: 'https://www.coinbase.com/wallet',
+    },
+  ];
+}
+
+function openWalletModal() {
+  const list    = document.getElementById('wm-list');
+  const wallets = buildWallets();
+  list.innerHTML = '';
+  wallets.forEach((w, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'wm-opt';
+    btn.innerHTML = `<div class="wm-opt-icon">${w.icon}</div><div class="wm-opt-text"><div class="wm-opt-name">${w.name}</div><div class="wm-opt-desc">${w.desc}</div></div><span class="wm-badge ${w.badgeClass}">${w.badge}</span>`;
+    btn.onclick = () => handleWalletSelect(w);
+    list.appendChild(btn);
+    if (i === 0) { const d = document.createElement('div'); d.className = 'wm-divider'; list.appendChild(d); }
+  });
+  document.getElementById('wm-overlay').classList.add('open');
+}
+
+function closeWalletModal() {
+  document.getElementById('wm-overlay').classList.remove('open');
+}
+
+async function handleWalletSelect(wallet) {
+  const provider = wallet.getProvider ? wallet.getProvider() : null;
   if (!provider) {
-    alert('⚠️ No wallet found! Please reload and use Base Account or install a Web3 wallet.');
+    if (wallet.installUrl) window.open(wallet.installUrl, '_blank');
     return;
   }
-
+  closeWalletModal();
+  const btn = document.getElementById('btn-connect');
+  btn.textContent = '\u23f3 CONNECTING...';
+  btn.disabled = true;
   try {
-    btn.textContent = '⏳ CONNECTING...';
-    btn.disabled = true;
-
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
-    walletAddress = accounts[0];
+    walletAddress   = accounts[0];
     _activeProvider = provider;
-
-    // Switch to / add Base network
     try {
-      await provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: BASE_CHAIN_ID }]
-      });
-    } catch (switchErr) {
-      if (switchErr.code === 4902) {
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [BASE_CHAIN_PARAMS]
-        });
-      }
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: BASE_CHAIN_ID }] });
+    } catch (e) {
+      if (e.code === 4902) await provider.request({ method: 'wallet_addEthereumChain', params: [BASE_CHAIN_PARAMS] });
     }
-
     updateWalletUI();
-
-    // Listen for account changes
     if (provider.on) {
       provider.on('accountsChanged', accs => {
         walletAddress = accs[0] || null;
@@ -493,59 +578,21 @@ async function connectWallet() {
         updateWalletUI();
       });
     }
-
   } catch (e) {
-    btn.textContent = '🔗 CONNECT WALLET';
+    btn.textContent = '\ud83d\udd17 CONNECT WALLET';
     btn.disabled = false;
     console.error('Wallet error:', e);
   }
 }
 
-function shortAddr(addr) {
-  if (!addr) return '';
-  return addr.slice(0,6) + '...' + addr.slice(-4);
-}
-
-function updateWalletUI() {
-  const st  = document.getElementById('wallet-status');
-  const addr = document.getElementById('wallet-addr');
-  const btn  = document.getElementById('btn-connect');
-  const hud  = document.getElementById('hudWallet');
-
+function connectWallet() {
   if (walletAddress) {
-    st.textContent = 'CONNECTED — BASE NETWORK';
-    st.className = 'connected';
-    addr.textContent = shortAddr(walletAddress);
-    addr.style.display = 'block';
-    btn.textContent = '✕ DISCONNECT';
-    btn.className = 'connected';
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    if (hud) { hud.textContent = shortAddr(walletAddress); hud.title = walletAddress; }
-  } else {
-    st.textContent = 'WALLET NOT CONNECTED';
-    st.className = '';
-    addr.style.display = 'none';
-    btn.textContent = '🔗 CONNECT WALLET';
-    btn.className = '';
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    btn.disabled = false;
-    if (hud) hud.textContent = '';
+    walletAddress = null;
+    _activeProvider = null;
+    updateWalletUI();
+    return;
   }
-}
-
-// Pre-fill name from wallet on game over
-function prefillNameFromWallet() {
-  const inp = document.getElementById('score-name-input');
-  if (walletAddress && !inp.value) {
-    inp.value = shortAddr(walletAddress);
-  }
+  openWalletModal();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -711,11 +758,11 @@ async function saveScore() {
   localStorage.setItem(LB_KEY, JSON.stringify(lb));
 
   // ── 2. Submit onchain if wallet connected + contract deployed ──
-  if (walletAddress && (_activeProvider || window.ethereum) && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
+  if (walletAddress && _activeProvider && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
     saveBtn.textContent = '⏳ SAVING ONCHAIN...';
     try {
       const eth      = await loadEthers();
-      const provider = new eth.BrowserProvider(_activeProvider || window.ethereum);
+      const provider = new eth.BrowserProvider(_activeProvider);
       const signer   = await provider.getSigner();
       const contract = new eth.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
@@ -756,11 +803,11 @@ async function renderLeaderboard() {
   const tbody = document.getElementById('lb-tbody');
   const sub   = document.querySelector('.lb-sub');
 
-  if ((_activeProvider || window.ethereum) && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
+  if (_activeProvider && CONTRACT_ADDRESS !== 'DEPLOY_ADDRESS_HERE') {
     tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">⏳ LOADING ONCHAIN...</td></tr>';
     try {
       const eth      = await loadEthers();
-      const provider = new eth.BrowserProvider(_activeProvider || window.ethereum);
+      const provider = new eth.BrowserProvider(_activeProvider);
       const contract = new eth.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       const entries  = await contract.getTopScores();
 
