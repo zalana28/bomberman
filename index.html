@@ -318,7 +318,7 @@
 <div id="game-wrap" class="screen">
   <div id="hud">
     <div class="hud-item">SCORE<span id="scoreDisplay">0</span></div>
-    <div class="hud-item">LIVES <span class="hud-lives" id="livesDisplay">♥♥♥</span></div>
+    <div class="hud-item">LIVES <span class="hud-lives" id="livesDisplay">♥</span></div>
     <div class="hud-item">LVL<span id="levelDisplay">1</span></div>
     <div class="hud-item">👾<span id="enemyDisplay">3</span></div>
     <div class="hud-wallet" id="hudWallet" title=""></div>
@@ -1360,7 +1360,7 @@ function startGame(){
   payAndStart(() => {
     canvas = document.getElementById('gameCanvas');
     ctx    = canvas.getContext('2d');
-    score  = 0; lives = 3; level = 1; frameCount = 0;
+    score  = 0; lives = 1; level = 1; frameCount = 0;
     gameState = 'playing';
     showScreen('game-wrap');
     updateWalletUI();
@@ -1392,7 +1392,7 @@ function endGame(win){
 function restartGame(){
   payAndStart(() => {
     showScreen('game-wrap');
-    score = 0; lives = 3; level = 1; frameCount = 0;
+    score = 0; lives = 1; level = 1; frameCount = 0;
     gameState = 'playing';
     resizeCanvas();
     initLevel(); updateHUD();
