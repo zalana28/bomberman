@@ -7,14 +7,14 @@
 <title>💣 BOMBERMAN — Base</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-​
+
 :root {
   --red:#e63946; --red-dark:#7b0000; --red-mid:#c1121f;
   --gold:#f4d03f; --blue:#4fc3f7; --blue-dark:#01579b;
   --bg:#0a0a0f; --panel:#111; --border:#2a2a3a;
   --base-blue:#0052ff;
 }
-​
+
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body {
   width:100%; height:100%;
@@ -28,11 +28,11 @@ body::before {
   background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px);
   pointer-events:none; z-index:200;
 }
-​
+
 /* ══════════════ SCREEN VISIBILITY ══════════════ */
 .screen { display:none; }
 .screen.active { display:flex; }
-​
+
 /* ══════════════ TITLE SCREEN ══════════════ */
 #title-screen {
   flex-direction:column; align-items:center; gap:14px; padding:20px 16px;
@@ -48,7 +48,7 @@ body::before {
 }
 .title-sub { font-size:clamp(5px,1.8vw,8px); color:var(--base-blue); letter-spacing:1px; }
 @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }
-​
+
 /* WALLET SECTION */
 .wallet-box {
   width:100%; background:#0d0d18; border:1px solid var(--border);
@@ -66,12 +66,12 @@ body::before {
 }
 #btn-connect:active { transform:translate(3px,3px); box-shadow:none; }
 #btn-connect.connected { background:#1a3a1a; border:1px solid #4caf50; box-shadow:3px 3px 0 #0a1a0a; font-size:6px; }
-​
+
 .press-start { color:var(--gold); font-size:clamp(6px,2vw,9px); animation:blink 1s step-end infinite; text-shadow:0 0 10px #f4d03f88; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-​
+
 /* controls-info removed */
-​
+
 .title-btns { display:flex; gap:10px; width:100%; }
 .start-btn {
   flex:2; background:var(--red); color:#fff; border:none;
@@ -87,10 +87,10 @@ body::before {
   transition:transform .08s,background .1s;
 }
 .lb-btn:active { transform:translate(2px,2px); }
-​
+
 /* ══════════════ GAME WRAP ══════════════ */
 #game-wrap { flex-direction:column; align-items:center; width:100%; height:100%; }
-​
+
 /* HUD */
 #hud {
   display:flex; gap:clamp(4px,2vw,16px); padding:5px 8px;
@@ -101,21 +101,21 @@ body::before {
 .hud-item span { color:var(--gold); margin-left:3px; }
 .hud-lives { color:var(--red); font-size:clamp(8px,2.5vw,12px); }
 .hud-wallet { font-size:clamp(4px,1.3vw,6px); color:var(--base-blue); cursor:pointer; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
-​
+
 /* CANVAS */
 #gameCanvas {
   border:2px solid var(--border); border-top:none; display:block;
   image-rendering:pixelated; image-rendering:crisp-edges;
   background:#1a1a2e; touch-action:none;
 }
-​
+
 /* ══════════════ MOBILE CONTROLS ══════════════ */
 #mobile-controls {
   display:none; width:100%; padding:8px 16px 12px;
   background:#0a0a14; border:2px solid var(--border); border-top:none;
   justify-content:space-between; align-items:center; flex-shrink:0; gap:0;
 }
-​
+
 /* JOYSTICK D-PAD */
 #dpad-zone {
   position:relative; width:170px; height:170px; flex-shrink:0;
@@ -132,7 +132,7 @@ body::before {
   width:44px; height:44px; background:#0d0d1e; border-radius:50%;
   border:1px solid #1e1e30; z-index:2;
 }
-​
+
 .dpad-arrow {
   position:absolute; z-index:3; display:flex; align-items:center; justify-content:center;
   width:56px; height:56px; font-size:18px; color:#333; pointer-events:none;
@@ -143,14 +143,14 @@ body::before {
 #da-left  { left:0;  top:50%;  transform:translateY(-50%); }
 #da-right { right:0; top:50%;  transform:translateY(-50%); }
 .dpad-arrow.active { color:var(--blue); text-shadow:0 0 8px var(--blue); }
-​
+
 #dpad-indicator {
   position:absolute; z-index:4; width:28px; height:28px;
   background:rgba(79,195,247,0.2); border:2px solid var(--blue);
   border-radius:50%; pointer-events:none; display:none;
   transform:translate(-50%,-50%);
 }
-​
+
 .bomb-side {
   display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0;
 }
@@ -166,7 +166,7 @@ body::before {
 #btn-bomb.pressed { transform:translateY(5px); box-shadow:0 1px 0 #4a0000; }
 #btn-bomb:active  { transform:translateY(5px); box-shadow:0 1px 0 #4a0000; }
 .bomb-lbl { font-size:6px; color:#555; letter-spacing:1px; }
-​
+
 #gameover-screen {
   flex-direction:column; align-items:center; gap:16px; padding:24px 20px;
   max-width:340px; width:100%;
@@ -175,7 +175,7 @@ body::before {
 .win-title { font-size:clamp(12px,4.5vw,20px); color:var(--blue); text-shadow:3px 3px 0 var(--blue-dark); }
 .go-score { font-size:clamp(7px,2.5vw,11px); color:var(--gold); }
 .go-score span { color:#fff; margin-left:6px; }
-​
+
 .save-box {
   width:100%; background:#0d0d18; border:1px solid var(--border);
   padding:10px 14px; display:flex; flex-direction:column; gap:8px;
@@ -194,7 +194,7 @@ body::before {
 }
 #btn-save-score:active { opacity:.7; }
 .save-msg { font-size:6px; color:#4caf50; display:none; text-align:center; }
-​
+
 .go-btns { display:flex; gap:10px; width:100%; }
 .go-btn {
   flex:1; background:var(--red); color:#fff; border:none;
@@ -208,7 +208,7 @@ body::before {
   padding:13px 8px; cursor:pointer;
 }
 .go-btn-outline:active { opacity:.7; }
-​
+
 #lb-screen {
   flex-direction:column; align-items:center; gap:14px; padding:20px 16px;
   max-width:360px; width:100%; max-height:100vh; overflow-y:auto;
@@ -243,7 +243,7 @@ body::before {
   font-family:'Press Start 2P',monospace; font-size:6px;
   padding:8px 16px; cursor:pointer; width:100%;
 }
-​
+
 /* ══════════════ WALLET MODAL ══════════════ */
 #wm-overlay {
   display:none; position:fixed; inset:0;
@@ -284,29 +284,29 @@ body::before {
     <div class="wm-note">Connect & pay a small Base gas fee to play</div>
   </div>
 </div>
-​
-​
+
+
 <!-- ██████████ TITLE SCREEN ██████████ -->
 <div id="title-screen" class="screen active">
   <span class="bomb-emoji">💣</span>
   <div class="title-logo">BOMBERMAN</div>
   <div class="title-sub">ON BASE NETWORK</div>
-​
+
   <!-- Wallet Connect -->
   <div class="wallet-box">
     <div id="wallet-status">WALLET NOT CONNECTED</div>
     <div id="wallet-addr"></div>
     <button id="btn-connect" onclick="connectWallet()">🔗 CONNECT WALLET</button>
   </div>
-​
+
   <div class="press-start">— TAP TO START —</div>
-​
+
   <div class="title-btns">
     <button class="start-btn" id="startBtn">▶ PLAY</button>
     <button class="lb-btn" onclick="showScreen('lb-screen')">🏆 SCORES</button>
   </div>
 </div>
-​
+
 <!-- ██████████ GAME SCREEN ██████████ -->
 <div id="game-wrap" class="screen">
   <div id="hud">
@@ -317,7 +317,7 @@ body::before {
     <div class="hud-wallet" id="hudWallet" title=""></div>
   </div>
   <canvas id="gameCanvas"></canvas>
-​
+
   <!-- MOBILE CONTROLS -->
   <div id="mobile-controls">
     <!-- Left: Joystick D-Pad -->
@@ -331,11 +331,11 @@ body::before {
       <div class="dpad-arrow" id="da-right">▶</div>
       <div id="dpad-indicator"></div>
     </div>
-​
+
     <div style="text-align:center;color:#252535;font-size:5px;line-height:2.4;flex:1;">
       DESTROY<br>ENEMIES<br>🌀PORTAL<br>NEXT LVL
     </div>
-​
+
     <!-- Right: Bomb -->
     <div class="bomb-side">
       <div id="btn-bomb">💣</div>
@@ -343,13 +343,13 @@ body::before {
     </div>
   </div>
 </div>
-​
+
 <!-- ██████████ GAME OVER SCREEN ██████████ -->
 <div id="gameover-screen" class="screen">
   <div class="go-title" id="endTitle">GAME OVER</div>
   <div class="go-score">FINAL SCORE: <span id="finalScore">0</span></div>
   <div class="go-score" id="finalLevel" style="font-size:7px;color:#888;">LEVEL: <span id="finalLevelVal">1</span></div>
-​
+
   <!-- Save score -->
   <div class="save-box" id="save-box">
     <div class="save-box-title">💾 SAVE SCORE</div>
@@ -357,19 +357,19 @@ body::before {
     <button id="btn-save-score" onclick="saveScore().catch(console.error)">✔ SAVE TO LEADERBOARD</button>
     <div class="save-msg" id="save-msg">✓ SCORE SAVED!</div>
   </div>
-​
+
   <div class="go-btns">
     <button class="go-btn" onclick="restartGame()">▶ PLAY AGAIN</button>
     <button class="go-btn-outline" onclick="showScreen('lb-screen')">🏆 LEADERBOARD</button>
   </div>
   <button class="go-btn-outline" style="width:100%;font-size:6px;padding:10px;" onclick="showScreen('title-screen')">⬅ TITLE</button>
 </div>
-​
+
 <!-- ██████████ LEADERBOARD SCREEN ██████████ -->
 <div id="lb-screen" class="screen">
   <div class="lb-header">🏆 LEADERBOARD</div>
   <div class="lb-sub">TOP 10 HIGH SCORES</div>
-​
+
   <table class="lb-table" id="lb-table">
     <thead>
       <tr>
@@ -384,34 +384,34 @@ body::before {
       <tr><td colspan="5" class="lb-empty">NO SCORES YET</td></tr>
     </tbody>
   </table>
-​
+
   <button class="lb-back-btn" onclick="lbBack()">⬅ BACK</button>
   <button class="lb-clear-btn" onclick="clearLeaderboard()">🗑 CLEAR ALL SCORES</button>
 </div>
-​
+
 <script>
 'use strict';
-​
+
 // ══════════════════════════════════════════════════════
 //  SCREEN MANAGER
 // ══════════════════════════════════════════════════════
 let prevScreen = 'title-screen';
-​
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (id === 'lb-screen') renderLeaderboard().catch(console.error);
 }
-​
+
 function lbBack() {
   showScreen(prevScreen === 'gameover-screen' ? 'gameover-screen' : 'title-screen');
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  BASE BUILDER CODE — ERC-8021 Attribution  (VERIFIED — DO NOT MODIFY)
 // ══════════════════════════════════════════════════════
 const BUILDER_CODE = 'bc_l60ahrh0';
-​
+
 function buildDataSuffix(code) {
   const encoded = new TextEncoder().encode(code);
   const codeHex = Array.from(encoded).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -419,13 +419,13 @@ function buildDataSuffix(code) {
   return '0x' + codeHex + lenHex + '00' + '80218021802180218021802180218021';
 }
 const DATA_SUFFIX = buildDataSuffix(BUILDER_CODE);
-​
+
 // ══════════════════════════════════════════════════════
 //  WALLET STATE + SELECTION MODAL
 // ══════════════════════════════════════════════════════
 let walletAddress = null;
 let _activeProvider = null;
-​
+
 const BASE_CHAIN_ID = '0x2105';
 const BASE_CHAIN_PARAMS = {
   chainId: BASE_CHAIN_ID, chainName: 'Base',
@@ -433,7 +433,7 @@ const BASE_CHAIN_PARAMS = {
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   blockExplorerUrls: ['https://basescan.org'],
 };
-​
+
 function detectInjected() {
   const all = window.ethereum?.providers || (window.ethereum ? [window.ethereum] : []);
   const res = { metamask: null, coinbaseExt: null };
@@ -447,7 +447,7 @@ function detectInjected() {
   }
   return res;
 }
-​
+
 let _baseProvider = null;
 function getBaseProvider() {
   if (_baseProvider) return _baseProvider;
@@ -458,10 +458,10 @@ function getBaseProvider() {
   }).getProvider();
   return _baseProvider;
 }
-​
+
 const ICON_BASE = `<div style="width:40px;height:40px;border-radius:10px;background:#0052ff;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 24C18.627 24 24 18.627 24 12C24 5.373 18.627 0 12 0C5.373 0 0 5.373 0 12C0 18.627 5.373 24 12 24ZM12 19.2C15.977 19.2 19.2 15.977 19.2 12C19.2 8.024 15.977 4.8 12 4.8C8.024 4.8 4.8 8.024 4.8 12C4.8 15.977 8.024 19.2 12 19.2Z" fill="white"/></svg></div>`;
 const ICON_MM   = `<div style="width:40px;height:40px;border-radius:10px;background:#f6851b22;border:1px solid #f6851b44;display:flex;align-items:center;justify-content:center;font-size:22px">🦊</div>`;
-​
+
 function buildWallets() {
   const inj = detectInjected();
   return [
@@ -475,7 +475,7 @@ function buildWallets() {
       getProvider: inj.coinbaseExt ? (() => inj.coinbaseExt) : null, installUrl:'https://www.coinbase.com/wallet' },
   ];
 }
-​
+
 function openWalletModal() {
   const list = document.getElementById('wm-list');
   const wallets = buildWallets();
@@ -490,11 +490,11 @@ function openWalletModal() {
   });
   document.getElementById('wm-overlay').classList.add('open');
 }
-​
+
 function closeWalletModal() {
   document.getElementById('wm-overlay').classList.remove('open');
 }
-​
+
 async function handleWalletSelect(wallet) {
   const provider = wallet.getProvider ? wallet.getProvider() : null;
   if (!provider) { if (wallet.installUrl) window.open(wallet.installUrl, '_blank'); return; }
@@ -523,7 +523,7 @@ async function handleWalletSelect(wallet) {
     console.error('Wallet error:', e);
   }
 }
-​
+
 function connectWallet() {
   if (walletAddress) {
     walletAddress = null;
@@ -533,12 +533,12 @@ function connectWallet() {
   }
   openWalletModal();
 }
-​
+
 function shortAddr(addr) {
   if (!addr) return '';
   return addr.slice(0,6) + '...' + addr.slice(-4);
 }
-​
+
 function updateWalletUI() {
   const st   = document.getElementById('wallet-status');
   const addr = document.getElementById('wallet-addr');
@@ -556,24 +556,24 @@ function updateWalletUI() {
     if (hud)  { hud.textContent = ''; }
   }
 }
-​
+
 function prefillNameFromWallet() {
   const inp = document.getElementById('score-name-input');
   if (inp && walletAddress && !inp.value) inp.value = shortAddr(walletAddress);
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  ONCHAIN LEADERBOARD — BombermanLeaderboard.sol
 //  Deployed: 0x2eA1D6C2A6A828e38eCB362f00fdFE3481BF536f (Base mainnet)
 // ══════════════════════════════════════════════════════
 const CONTRACT_ADDRESS = '0x2eA1D6C2A6A828e38eCB362f00fdFE3481BF536f';
-​
+
 // Function selectors (keccak256(sig)[0:4])
 const SEL_RECORD_PLAY    = '0x32eef732'; // recordPlay()
 const SEL_PLAY_FEE       = '0xb8e9c22d'; // playFee()
 const SEL_SUBMIT_FEE     = '0xc415b95c'; // submitFee()
 const SEL_GET_TOP_SCORES = '0x4d81fdb4'; // getTopScores()
-​
+
 // ABI — hanya fungsi yang dipakai frontend
 const CONTRACT_ABI = [
   { name: 'recordPlay', type: 'function', stateMutability: 'payable', inputs: [], outputs: [] },
@@ -609,7 +609,7 @@ const CONTRACT_ABI = [
   { name: 'submitFee',  type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
   { name: 'totalPlays', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint256' }] },
 ];
-​
+
 // ── Load ethers.js dari CDN ───────────────────────────
 let ethers = null;
 async function loadEthers() {
@@ -622,7 +622,7 @@ async function loadEthers() {
     document.head.appendChild(s);
   });
 }
-​
+
 // Read uint256 view function via eth_call, return hex string suitable for `value` field
 async function readFeeHex(selector) {
   if (!_activeProvider) return '0x0';
@@ -639,25 +639,25 @@ async function readFeeHex(selector) {
     return '0x0';
   }
 }
-​
+
 // ── localStorage fallback ──────────────────────────────────
 const LB_KEY = 'bomberman_base_lb';
-​
+
 function getLeaderboardLocal() {
   try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
   catch { return []; }
 }
-​
+
 async function saveScore() {
   const nameEl  = document.getElementById('score-name-input');
   const saveBtn = document.getElementById('btn-save-score');
   const saveMsg = document.getElementById('save-msg');
   const name    = (nameEl.value.trim().toUpperCase() || 'ANON').slice(0, 12);
-​
+
   saveBtn.disabled     = true;
   saveBtn.style.opacity = '0.4';
   saveMsg.style.display = 'none';
-​
+
   // ── 1. Always save locally first ────────────────────
   const lb = getLeaderboardLocal();
   lb.push({
@@ -669,7 +669,7 @@ async function saveScore() {
   lb.sort((a, b) => b.score - a.score);
   lb.splice(10);
   localStorage.setItem(LB_KEY, JSON.stringify(lb));
-​
+
   // ── 2. Submit onchain if wallet connected ─────────────────
   if (walletAddress && _activeProvider) {
     saveBtn.textContent = '⏳ SAVING ONCHAIN...';
@@ -677,14 +677,14 @@ async function saveScore() {
       const eth      = await loadEthers();
       const iface    = new eth.Interface(CONTRACT_ABI);
       const calldata = iface.encodeFunctionData('submitScore', [name, score, level]);
-​
+
       // Append Builder Code suffix (ERC-8021 attribution)
       const suffix   = DATA_SUFFIX.startsWith('0x') ? DATA_SUFFIX.slice(2) : DATA_SUFFIX;
       const data     = calldata + suffix;
-​
+
       // Read submitFee from contract (default 0)
       const submitFeeHex = await readFeeHex(SEL_SUBMIT_FEE);
-​
+
       const txHash = await _activeProvider.request({
         method: 'eth_sendTransaction',
         params: [{
@@ -694,7 +694,7 @@ async function saveScore() {
           value: submitFeeHex,
         }],
       });
-​
+
       console.log('[submitScore] tx sent:', txHash);
       saveMsg.textContent = '✓ SAVED ONCHAIN! 🔗';
       saveMsg.style.color = '#4fc3f7';
@@ -707,17 +707,17 @@ async function saveScore() {
     saveMsg.textContent = '✓ SCORE SAVED!';
     saveMsg.style.color = '#4caf50';
   }
-​
+
   saveMsg.style.display = 'block';
   saveBtn.textContent   = '✔ SAVE TO LEADERBOARD';
   saveBtn.disabled      = false;
   saveBtn.style.opacity = '1';
 }
-​
+
 async function renderLeaderboard() {
   const tbody = document.getElementById('lb-tbody');
   const sub   = document.querySelector('.lb-sub');
-​
+
   if (_activeProvider) {
     tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">⏳ LOADING ONCHAIN...</td></tr>';
     try {
@@ -725,13 +725,13 @@ async function renderLeaderboard() {
       const provider = new eth.BrowserProvider(_activeProvider);
       const contract = new eth.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
       const entries  = await contract.getTopScores();
-​
+
       if (!entries.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="lb-empty">NO SCORES YET</td></tr>';
         if (sub) sub.textContent = '🔗 TOP 10 — ONCHAIN (BASE)';
         return;
       }
-​
+
       if (sub) sub.textContent = '🔗 TOP 10 — ONCHAIN (BASE)';
       tbody.innerHTML = entries.map((e, i) => {
         const addr = e.player;
@@ -750,7 +750,7 @@ async function renderLeaderboard() {
       console.warn('[Leaderboard] onchain fetch failed, fallback to local:', err);
     }
   }
-​
+
   // Fallback: localStorage
   if (sub) sub.textContent = 'TOP 10 — LOCAL';
   const lb = getLeaderboardLocal();
@@ -768,14 +768,14 @@ async function renderLeaderboard() {
     </tr>
   `).join('');
 }
-​
+
 function clearLeaderboard() {
   if (confirm('Clear local leaderboard scores?')) {
     localStorage.removeItem(LB_KEY);
     renderLeaderboard();
   }
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  GAME CONSTANTS
 // ══════════════════════════════════════════════════════
@@ -792,7 +792,7 @@ const PC = {
 };
 const ECOLORS = ['#e63946', '#f4a261', '#9b5de5'];
 const EDARK   = ['#7b0000', '#c1440e', '#5a189a'];
-​
+
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
@@ -801,25 +801,25 @@ let gmap, bombs, fires, enemies, portals;
 let player, score, lives, level, frameCount, invincible, lastMove;
 const keys = {};
 const mob  = { up:false, down:false, left:false, right:false };
-​
+
 // ══════════════════════════════════════════════════════
 //  RESPONSIVE CANVAS
 // ══════════════════════════════════════════════════════
 const isMobile = () => window.innerWidth <= 680 || ('ontouchstart' in window);
-​
+
 function resizeCanvas() {
   if (!canvas) return;
   const useMob = isMobile();
   const mctrl = document.getElementById('mobile-controls');
   mctrl.style.display = useMob ? 'flex' : 'none';
-​
+
   const hudH   = document.getElementById('hud').offsetHeight || 28;
   const ctrlH  = useMob ? (mctrl.offsetHeight || 190) : 0;
   const vpad   = useMob ? 6 : 16;
   const avW    = Math.min(window.innerWidth, 560);
   const avH    = window.innerHeight - hudH - ctrlH - vpad;
   TILE = Math.floor(Math.min(avW / COLS, avH / ROWS));
-​
+
   const cw = TILE * COLS, ch = TILE * ROWS;
   canvas.width  = cw; canvas.height = ch;
   canvas.style.width  = cw + 'px';
@@ -827,9 +827,9 @@ function resizeCanvas() {
   document.getElementById('hud').style.width           = cw + 'px';
   document.getElementById('mobile-controls').style.width = cw + 'px';
 }
-​
+
 window.addEventListener('resize', resizeCanvas);
-​
+
 // ══════════════════════════════════════════════════════
 //  INPUT — KEYBOARD
 // ══════════════════════════════════════════════════════
@@ -841,14 +841,14 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
-​
+
 // ══════════════════════════════════════════════════════
 //  INPUT — JOYSTICK D-PAD
 // ══════════════════════════════════════════════════════
 function bindMobileControls() {
   const zone = document.getElementById('dpad-zone');
   const indicator = document.getElementById('dpad-indicator');
-​
+
   function applyDir(touch) {
     const rect = zone.getBoundingClientRect();
     const cx = rect.left + rect.width  / 2;
@@ -856,16 +856,16 @@ function bindMobileControls() {
     const dx = touch.clientX - cx;
     const dy = touch.clientY - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
-​
+
     indicator.style.display = 'block';
     const ix = Math.min(Math.max(touch.clientX - rect.left, 14), rect.width  - 14);
     const iy = Math.min(Math.max(touch.clientY - rect.top,  14), rect.height - 14);
     indicator.style.left = ix + 'px';
     indicator.style.top  = iy + 'px';
-​
+
     const deadzone = 22;
     mob.up = mob.down = mob.left = mob.right = false;
-​
+
     if (dist >= deadzone) {
       const angle = Math.atan2(dy, dx);
       if (angle > -Math.PI * 3/4 && angle <= -Math.PI * 1/4) mob.up    = true;
@@ -875,24 +875,24 @@ function bindMobileControls() {
     }
     updateDpadVisuals();
   }
-​
+
   function releaseDir() {
     mob.up = mob.down = mob.left = mob.right = false;
     updateDpadVisuals();
     indicator.style.display = 'none';
   }
-​
+
   zone.addEventListener('touchstart',  e => { e.preventDefault(); applyDir(e.touches[0]); }, { passive:false });
   zone.addEventListener('touchmove',   e => { e.preventDefault(); applyDir(e.touches[0]); }, { passive:false });
   zone.addEventListener('touchend',    e => { e.preventDefault(); releaseDir(); },            { passive:false });
   zone.addEventListener('touchcancel', e => { e.preventDefault(); releaseDir(); },            { passive:false });
-​
+
   let mouseDown = false;
   zone.addEventListener('mousedown',  e => { mouseDown=true;  applyDir(e); });
   zone.addEventListener('mousemove',  e => { if (mouseDown) applyDir(e); });
   zone.addEventListener('mouseup',    () => { mouseDown=false; releaseDir(); });
   zone.addEventListener('mouseleave', () => { if (mouseDown) { mouseDown=false; releaseDir(); } });
-​
+
   const bb = document.getElementById('btn-bomb');
   bb.addEventListener('touchstart',  e => { e.preventDefault(); placeBomb(); bb.classList.add('pressed'); },    { passive:false });
   bb.addEventListener('touchend',    e => { e.preventDefault(); bb.classList.remove('pressed'); },              { passive:false });
@@ -901,14 +901,14 @@ function bindMobileControls() {
   bb.addEventListener('mouseup',     () => bb.classList.remove('pressed'));
   bb.addEventListener('mouseleave',  () => bb.classList.remove('pressed'));
 }
-​
+
 function updateDpadVisuals() {
   const map = { up:'da-up', down:'da-down', left:'da-left', right:'da-right' };
   for (const [d, id] of Object.entries(map)) {
     document.getElementById(id).classList.toggle('active', mob[d]);
   }
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  MAP GENERATION
 // ══════════════════════════════════════════════════════
@@ -925,7 +925,7 @@ function genMap(lvl) {
   }
   return m;
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  INIT LEVEL
 // ══════════════════════════════════════════════════════
@@ -968,17 +968,17 @@ function initLevel() {
     pr = 1 + ~~(Math.random() * (ROWS-2));
   } while (gmap[pr][pc] !== BLOCK || (Math.abs(pc-1) < 3 && Math.abs(pr-1) < 3));
   portals.push({ col:pc, row:pr, visible:false, frame:0 });
-​
+
   document.getElementById('enemyDisplay').textContent  = n;
   document.getElementById('levelDisplay').textContent  = level;
   updateHUD();
 }
-​
+
 function updateHUD() {
   document.getElementById('scoreDisplay').textContent = score;
   document.getElementById('livesDisplay').textContent = '♥'.repeat(Math.max(0, lives));
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  PLAYER
 // ══════════════════════════════════════════════════════
@@ -997,14 +997,14 @@ function movePlayer() {
     player.frame = (player.frame + 1) % 4; lastMove = frameCount;
   } else player.moving = false;
 }
-​
+
 function canWalk(r, c) {
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
   if (gmap[r][c] === WALL || gmap[r][c] === BLOCK) return false;
   if (bombs.find(b => b.col === c && b.row === r)) return false;
   return true;
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  BOMBS
 // ══════════════════════════════════════════════════════
@@ -1016,7 +1016,7 @@ function placeBomb() {
   bombs.push({ col:c, row:r, timer:90, range:player.bombRange, owner:'player' });
   player.activeBombs++;
 }
-​
+
 function updateBombs() {
   for (let i = bombs.length - 1; i >= 0; i--) {
     const b = bombs[i]; b.timer--;
@@ -1027,7 +1027,7 @@ function updateBombs() {
     }
   }
 }
-​
+
 function explode(b) {
   const dirs = [[0,0],[1,0],[-1,0],[0,1],[0,-1]];
   for (const [dc,dr] of dirs) {
@@ -1046,7 +1046,7 @@ function explode(b) {
     }
   }
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  FIRE
 // ══════════════════════════════════════════════════════
@@ -1055,13 +1055,13 @@ function updateFires() {
   if (invincible > 0) { invincible--; return; }
   if (fires.find(f => f.col === player.col && f.row === player.row) && !player.dead) playerDie();
 }
-​
+
 function playerDie() {
   lives--; updateHUD();
   if (lives <= 0) { setTimeout(() => endGame(false), 700); }
   else { player.col = 1; player.row = 1; invincible = 120; }
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  ENEMIES
 // ══════════════════════════════════════════════════════
@@ -1087,7 +1087,7 @@ function updateEnemies() {
     p.frame = (p.frame + 1) % 60;
   }
 }
-​
+
 function enemyTryBomb(e) {
   if (e.dead || level < 2) return;
   if ((e.activeBombs || 0) >= 1) return;
@@ -1099,7 +1099,7 @@ function enemyTryBomb(e) {
   e.activeBombs = (e.activeBombs || 0) + 1;
   bombs.push({ col:e.col, row:e.row, timer:80, range:2, owner:'enemy', ownerEnemy:e });
 }
-​
+
 function bombDangerTiles() {
   const danger = new Set();
   for (const b of bombs) {
@@ -1116,14 +1116,14 @@ function bombDangerTiles() {
   }
   return danger;
 }
-​
+
 function enemyWalkable(r, c) {
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false;
   if (gmap[r][c] === WALL || gmap[r][c] === BLOCK) return false;
   if (bombs.find(b => b.col === c && b.row === r)) return false;
   return true;
 }
-​
+
 function bfsStepToPlayer(e, danger) {
   const start = e.row + ',' + e.col;
   const target = player.row + ',' + player.col;
@@ -1149,12 +1149,12 @@ function bfsStepToPlayer(e, danger) {
   const [nr, nc] = cur.split(',').map(Number);
   return { row: nr, col: nc };
 }
-​
+
 function moveEnemy(e) {
   const D = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
   const dk = Object.keys(D);
   const danger = bombDangerTiles();
-​
+
   if (danger.has(e.row + ',' + e.col)) {
     const safe = [];
     for (const d of dk) {
@@ -1167,7 +1167,7 @@ function moveEnemy(e) {
       e.col = c; e.row = r; e.dir = d; return;
     }
   }
-​
+
   const chaseChance = Math.min(0.9, 0.45 + level * 0.07);
   if (Math.random() < chaseChance) {
     const step = bfsStepToPlayer(e, danger);
@@ -1176,7 +1176,7 @@ function moveEnemy(e) {
       e.col = step.col; e.row = step.row; return;
     }
   }
-​
+
   const try1 = d => {
     const [dc, dr] = D[d];
     const nc = e.col + dc, nr = e.row + dr;
@@ -1189,7 +1189,7 @@ function moveEnemy(e) {
     for (const d of sh) if (try1(d)) break;
   }
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  DRAW FUNCTIONS
 // ══════════════════════════════════════════════════════
@@ -1308,7 +1308,7 @@ function draw(){
   [...enemies].sort((a,b)=>a.row-b.row).forEach(e=>dEnemy(e));
   dPlayer();
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  GAME LOOP
 // ══════════════════════════════════════════════════════
@@ -1319,24 +1319,24 @@ function loop(){
   draw();
   requestAnimationFrame(loop);
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  GAME CONTROL  — Pay & Start via recordPlay() onchain
 // ══════════════════════════════════════════════════════
-​
+
 let _starting = false;
-​
+
 // Pay-per-play: kirim tx ke kontrak (recordPlay) + Builder Code suffix.
 // Tx ini menggantikan self-call yang sebelumnya kena bug di smart wallet.
 async function payAndStart(afterPay) {
   if (_starting) return;
   if (!walletAddress || !_activeProvider) { openWalletModal(); return; }
   _starting = true;
-​
+
   const sb = document.getElementById('startBtn');
   const prev = sb ? sb.textContent : '';
   if (sb) { sb.textContent = '\u23f3 CONFIRM IN WALLET...'; sb.disabled = true; }
-​
+
   try {
     // 1) Pastikan di Base network
     const cid = await _activeProvider.request({ method: 'eth_chainId' });
@@ -1355,14 +1355,14 @@ async function payAndStart(afterPay) {
         } else throw e;
       }
     }
-​
+
     // 2) Baca playFee dari kontrak
     const playFeeHex = await readFeeHex(SEL_PLAY_FEE);
-​
+
     // 3) Build calldata: recordPlay() selector + Builder Code suffix (ERC-8021)
     const suffix = DATA_SUFFIX.replace(/^0x/, '');
     const data   = SEL_RECORD_PLAY + suffix;
-​
+
     // 4) Kirim tx ke KONTRAK (BUKAN ke walletAddress)
     const txHash = await _activeProvider.request({
       method: 'eth_sendTransaction',
@@ -1373,13 +1373,13 @@ async function payAndStart(afterPay) {
         data,
       }],
     });
-​
+
     console.log('[recordPlay] tx sent:', txHash);
-​
+
     if (sb) { sb.textContent = prev; sb.disabled = false; }
     _starting = false;
     afterPay();
-​
+
   } catch (err) {
     console.warn('[payAndStart] failed:', err.message);
     if (sb) { sb.textContent = prev; sb.disabled = false; }
@@ -1391,7 +1391,7 @@ async function payAndStart(afterPay) {
     }
   }
 }
-​
+
 function startGame(){
   payAndStart(() => {
     canvas = document.getElementById('gameCanvas');
@@ -1407,7 +1407,7 @@ function startGame(){
     loop();
   });
 }
-​
+
 function endGame(win){
   gameState = win ? 'win' : 'gameover';
   prevScreen = 'gameover-screen';
@@ -1416,14 +1416,14 @@ function endGame(win){
   document.getElementById('endTitle').className    = win ? 'win-title'  : 'go-title';
   document.getElementById('finalScore').textContent     = score;
   document.getElementById('finalLevelVal').textContent  = level;
-​
+
   document.getElementById('save-msg').style.display        = 'none';
   document.getElementById('btn-save-score').disabled       = false;
   document.getElementById('btn-save-score').style.opacity  = '1';
   document.getElementById('score-name-input').value        = '';
   prefillNameFromWallet();
 }
-​
+
 function restartGame(){
   payAndStart(() => {
     showScreen('game-wrap');
@@ -1434,7 +1434,7 @@ function restartGame(){
     loop();
   });
 }
-​
+
 // ══════════════════════════════════════════════════════
 //  TITLE TOUCH TO START
 // ══════════════════════════════════════════════════════
@@ -1443,4 +1443,3 @@ document.getElementById('startBtn').addEventListener('touchstart', e => { e.prev
 </script>
 </body>
 </html>
-​
