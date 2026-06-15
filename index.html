@@ -568,10 +568,10 @@ function prefillNameFromWallet() {
 // ══════════════════════════════════════════════════════
 const CONTRACT_ADDRESS = '0x2eA1D6C2A6A828e38eCB362f00fdFE3481BF536f';
 
-// Function selectors (keccak256(sig)[0:4])
-const SEL_RECORD_PLAY    = '0x32eef732'; // recordPlay()
-const SEL_PLAY_FEE       = '0xb8e9c22d'; // playFee()
-const SEL_SUBMIT_FEE     = '0xc415b95c'; // submitFee()
+// Function selectors (verified via keccak256)
+const SEL_RECORD_PLAY    = '0xb71910a9'; // recordPlay()
+const SEL_PLAY_FEE       = '0x283d314a'; // playFee()
+const SEL_SUBMIT_FEE     = '0x157df2c1'; // submitFee()
 const SEL_GET_TOP_SCORES = '0x4d81fdb4'; // getTopScores()
 
 // ABI — hanya fungsi yang dipakai frontend
